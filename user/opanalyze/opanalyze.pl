@@ -239,8 +239,6 @@ while ($input = <IN>) {
 
     # a record terminator found
     } elsif ($input eq "") {
-## ignore one more null line(NTT specific)
-#  $trash = <IN>;
 	# '-M plain' case
 	if ($mode eq "plain") {
 	    $num_syms = 0;
