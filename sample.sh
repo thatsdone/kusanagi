@@ -25,7 +25,7 @@
 #     FILENAME  output file name
 #
 # DESCRIPTION
-#   profile.sh invokes oprofiled and samples system wide profiling
+#   sample.sh invokes oprofiled and samples system wide profiling
 #   information using 'opreport -la -p <dir>' periodically.
 #   You can analyze the log file using opanalyze.pl accompanied by
 #   this script.
