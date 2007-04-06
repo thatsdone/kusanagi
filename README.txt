@@ -12,10 +12,10 @@ DESCRIPTION
   (Context Switch Storm) [1, 2, 3].
   rye.ko creates a kernel thread on insertion, and the thread monitors
   accumulated number of context switches periodically and tests if context
-  swiches rate (per second) gets higher than a threshold given on the
+  switches rate (per second) gets higher than a threshold given on the
   insertion time periodically.
-  If the rate exceeded the given threshold, it calles panic(). Thus,
-  using ryk.ko with your favorite crash dump utility such as kdump,
+  If the rate exceeded the given threshold, it calls panic(). Thus,
+  using rye.ko with your favorite crash dump utility such as kdump,
   you can take good information for your investigation.
 
   Here are description of insmod perameters of rye.ko.
