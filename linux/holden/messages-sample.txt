@@ -1,0 +1,62 @@
+
+This is a sample /var/log/messages file when you used holden.
+
+The command line parameter used below is the following:
+
+  # insmod holden.ko verbose=1
+
+The stack trace catches a timing when an outgoing TCP/IPv4 packet
+with SYN bit ON  was passed to NF_IP_POST_ROUTING hook, i.e. ip_output().
+The TCP header dump '001605fb 76629e48 757c8b67 701216d0 22cb0000' says
+SYN and ACK bits are set.
+
+For example, you can use holden to examine if both of RST and ACK bits 
+of a TCP segment are set or not by giving flags=0x50000000 to holden like
+the following:
+
+  # insmod holden.ko verbose=1 flags=0x50000000
+
+As for details, please see holden.c.
+
+Have fun!
+
+-----------
+Apr 16 20:49:45 rhel5 syslogd 1.4.1: restart.
+[snip]
+Apr 16 20:50:21 rhel5 kernel: holden_init: called
+Apr 16 20:50:21 rhel5 kernel: holden_init: flags=08000000, action=0, verbose=1
+Apr 16 20:50:24 rhel5 kernel: holden: TCP header : 001605fb76629e48757c8b67701216d022cb0000
+Apr 16 20:50:24 rhel5 kernel:  [<c492a0f1>] holden_hook+0xf1/0x118 [holden]
+Apr 16 20:50:24 rhel5 kernel:  [<c492a100>] holden_hook+0x100/0x118 [holden]
+Apr 16 20:50:24 rhel5 kernel:  [<c05b8a54>] nf_iterate+0x30/0x61
+Apr 16 20:50:24 rhel5 kernel:  [<c05c13c9>] ip_finish_output+0x0/0x16d
+Apr 16 20:50:24 rhel5 kernel:  [<c05b8b7a>] nf_hook_slow+0x3a/0x90
+Apr 16 20:50:24 rhel5 kernel:  [<c05c13c9>] ip_finish_output+0x0/0x16d
+Apr 16 20:50:24 rhel5 kernel:  [<c05c2535>] ip_output+0x82/0x1f9
+Apr 16 20:50:24 rhel5 kernel:  [<c05c13c9>] ip_finish_output+0x0/0x16d
+Apr 16 20:50:24 rhel5 kernel:  [<c05c21aa>] ip_build_and_send_pkt+0x1e0/0x1f3
+Apr 16 20:50:24 rhel5 kernel:  [<c05d3012>] tcp_v4_send_synack+0x96/0xe4
+Apr 16 20:50:24 rhel5 kernel:  [<c05d4ff6>] tcp_v4_conn_request+0x39b/0x3e6
+Apr 16 20:50:24 rhel5 kernel:  [<c49ee767>] tcp_v6_conn_request+0x34/0x2d1 [ipv6]
+Apr 16 20:50:24 rhel5 kernel:  [<c046d780>] end_bio_bh_io_sync+0x0/0x39
+Apr 16 20:50:24 rhel5 kernel:  [<c0434e4a>] __wake_up_bit+0x29/0x2e
+Apr 16 20:50:24 rhel5 kernel:  [<c05cd785>] tcp_rcv_state_process+0x5d/0xcc5
+Apr 16 20:50:24 rhel5 kernel:  [<c05d3cb6>] tcp_v4_do_rcv+0x274/0x2bc
+Apr 16 20:50:24 rhel5 kernel:  [<c05d5f38>] tcp_v4_rcv+0x8dd/0x931
+Apr 16 20:50:24 rhel5 kernel:  [<c05bde84>] ip_local_deliver+0x159/0x205
+Apr 16 20:50:24 rhel5 kernel:  [<c05bdcf1>] ip_rcv+0x3ef/0x429
+Apr 16 20:50:24 rhel5 kernel:  [<c05a38e9>] netif_receive_skb+0x2c1/0x339
+Apr 16 20:50:24 rhel5 kernel:  [<c05a50dd>] process_backlog+0x7a/0xcd
+Apr 16 20:50:24 rhel5 kernel:  [<c05a5284>] net_rx_action+0x92/0x175
+Apr 16 20:50:24 rhel5 kernel:  [<c04281cf>] __do_softirq+0x5a/0xbb
+Apr 16 20:50:24 rhel5 kernel:  [<c0406461>] do_softirq+0x52/0x9d
+Apr 16 20:50:24 rhel5 kernel:  [<c0406406>] do_IRQ+0xa5/0xae
+Apr 16 20:50:24 rhel5 kernel:  [<c040492e>] common_interrupt+0x1a/0x20
+Apr 16 20:50:24 rhel5 kernel:  [<c0402b98>] default_idle+0x0/0x59
+Apr 16 20:50:24 rhel5 kernel:  [<c0402bc9>] default_idle+0x31/0x59
+Apr 16 20:50:24 rhel5 kernel:  [<c0402c90>] cpu_idle+0x9f/0xb9
+Apr 16 20:50:24 rhel5 kernel:  [<c06d8798>] start_kernel+0x380/0x387
+Apr 16 20:50:25 rhel5 kernel:  =======================
+Apr 16 20:50:29 rhel5 kernel: holden_exit: called
+
+-----------
