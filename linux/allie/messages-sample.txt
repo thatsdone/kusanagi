@@ -1,0 +1,119 @@
+
+This is a sample /var/log/messages file taken by 'allie'.
+
+The command line parameter used below is the following:
+
+  # insmod allie.ko action=0 count=3 symbol=mpage_bio_submit
+
+When I did 'fdisk /dev/sda', I got the following stack traces.
+
+As for details, please see holden.c.
+
+Have fun!
+
+Note:
+  1) You can specify even a NON exported in-kernel function such as
+     nr_context_switches() to the 'symbol' parameter.
+  2) This driver uses kprobe as you can see in 'allie.c', thus
+     you cannot catch functions which are executed interrupt disabled state.
+
+----
+Apr 19 20:06:59 rhel5 syslogd 1.4.1: restart.
+  [snip]
+Apr 19 20:47:14 rhel5 kernel: allie_init: called
+Apr 19 20:47:14 rhel5 kernel: allie_init: flags=00000000, action=1, count=3, verbose=0
+Apr 19 20:47:14 rhel5 kernel: allie_init: symbol=mpage_bio_submit
+Apr 19 20:47:42 rhel5 kernel:  [<c48ec0b2>] allie_pre_handler+0x3b/0x61 [allie]
+Apr 19 20:47:42 rhel5 kernel:  [<c05fcc69>] kprobe_exceptions_notify+0x187/0x3dc
+Apr 19 20:47:42 rhel5 kernel:  [<c05fd756>] notifier_call_chain+0x19/0x29
+Apr 19 20:47:42 rhel5 kernel:  [<c05fc9cc>] do_int3+0x39/0x6a
+Apr 19 20:47:42 rhel5 kernel:  [<c05fc63a>] int3+0x1e/0x24
+Apr 19 20:47:42 rhel5 kernel:  [<c0487df1>] mpage_bio_submit+0x1/0x1d
+Apr 19 20:47:42 rhel5 kernel:  [<c0488f4f>] mpage_readpages+0xec/0xf9
+Apr 19 20:47:42 rhel5 kernel:  [<c0453c09>] get_page_from_freelist+0x96/0x310
+Apr 19 20:47:42 rhel5 kernel:  [<c040492e>] common_interrupt+0x1a/0x20
+Apr 19 20:47:42 rhel5 kernel:  [<c48a89ea>] ext3_readpages+0x0/0x15 [ext3]
+Apr 19 20:47:42 rhel5 kernel:  [<c48a89ea>] ext3_readpages+0x0/0x15 [ext3]
+Apr 19 20:47:42 rhel5 kernel:  [<c0455326>] __do_page_cache_readahead+0x11f/0x1c6
+Apr 19 20:47:42 rhel5 kernel:  [<c48a9546>] ext3_get_block+0x0/0xbd [ext3]
+Apr 19 20:47:42 rhel5 kernel:  [<c0455413>] blockable_page_cache_readahead+0x46/0x99
+Apr 19 20:47:42 rhel5 kernel:  [<c04555a6>] page_cache_readahead+0xb3/0x178
+Apr 19 20:47:42 rhel5 kernel:  [<c044ff90>] do_generic_mapping_read+0x137/0x468
+Apr 19 20:47:42 rhel5 kernel:  [<c0450b1a>] __generic_file_aio_read+0x16f/0x1b6
+Apr 19 20:47:42 rhel5 kernel:  [<c044f717>] file_read_actor+0x0/0xd1
+Apr 19 20:47:43 rhel5 kernel:  [<c0450b9c>] generic_file_aio_read+0x3b/0x42
+Apr 19 20:47:43 rhel5 kernel:  [<c046a5df>] do_sync_read+0xb6/0xf1
+Apr 19 20:47:43 rhel5 kernel:  [<c0434e65>] autoremove_wake_function+0x0/0x2d
+Apr 19 20:47:43 rhel5 kernel:  [<c041ebd5>] sched_balance_self+0x1bf/0x208
+Apr 19 20:47:43 rhel5 kernel:  [<c046a529>] do_sync_read+0x0/0xf1
+Apr 19 20:47:43 rhel5 kernel:  [<c046aee8>] vfs_read+0x9f/0x141
+Apr 19 20:47:43 rhel5 kernel:  [<c0472fc7>] kernel_read+0x32/0x43
+Apr 19 20:47:43 rhel5 kernel:  [<c047309f>] prepare_binprm+0xc7/0xcc
+Apr 19 20:47:43 rhel5 kernel:  [<c04744db>] do_execve+0xf6/0x1f5
+Apr 19 20:47:43 rhel5 kernel:  [<c040221f>] sys_execve+0x2a/0x4a
+Apr 19 20:47:43 rhel5 kernel:  [<c0403eff>] syscall_call+0x7/0xb
+Apr 19 20:47:43 rhel5 kernel:  =======================
+Apr 19 20:47:43 rhel5 kernel:  [<c48ec0b2>] allie_pre_handler+0x3b/0x61 [allie]
+Apr 19 20:47:43 rhel5 kernel:  [<c05fcc69>] kprobe_exceptions_notify+0x187/0x3dc
+Apr 19 20:47:43 rhel5 kernel:  [<c05fd756>] notifier_call_chain+0x19/0x29
+Apr 19 20:47:43 rhel5 kernel:  [<c05fc9cc>] do_int3+0x39/0x6a
+Apr 19 20:47:43 rhel5 kernel:  [<c05fc63a>] int3+0x1e/0x24
+Apr 19 20:47:43 rhel5 kernel:  [<c0487df1>] mpage_bio_submit+0x1/0x1d
+Apr 19 20:47:43 rhel5 kernel:  [<c0488ef8>] mpage_readpages+0x95/0xf9
+Apr 19 20:47:43 rhel5 kernel:  [<c48a9546>] ext3_get_block+0x0/0xbd [ext3]
+Apr 19 20:47:43 rhel5 kernel:  [<c0453557>] __rmqueue+0x32/0xa2
+Apr 19 20:47:43 rhel5 kernel:  [<c0453eda>] __alloc_pages+0x57/0x27e
+Apr 19 20:47:43 rhel5 kernel:  [<c48a89ea>] ext3_readpages+0x0/0x15 [ext3]
+Apr 19 20:47:43 rhel5 kernel:  [<c0455326>] __do_page_cache_readahead+0x11f/0x1c6
+Apr 19 20:47:43 rhel5 kernel:  [<c48a9546>] ext3_get_block+0x0/0xbd [ext3]
+Apr 19 20:47:43 rhel5 kernel:  [<c0453e19>] get_page_from_freelist+0x2a6/0x310
+Apr 19 20:47:43 rhel5 kernel:  [<c0452284>] filemap_nopage+0x151/0x315
+Apr 19 20:47:43 rhel5 kernel:  [<c045a8de>] __handle_mm_fault+0x172/0x87b
+Apr 19 20:47:43 rhel5 kernel:  [<c04dcc8b>] prio_tree_insert+0x12c/0x1f2
+Apr 19 20:47:43 rhel5 kernel:  [<c040492e>] common_interrupt+0x1a/0x20
+Apr 19 20:47:43 rhel5 kernel:  [<c05fd48f>] do_page_fault+0x20a/0x4b8
+Apr 19 20:47:43 rhel5 kernel:  [<c05fd285>] do_page_fault+0x0/0x4b8
+Apr 19 20:47:43 rhel5 kernel:  [<c0404a71>] error_code+0x39/0x40
+Apr 19 20:47:43 rhel5 kernel:  [<c04df9b7>] clear_user+0x34/0x42
+Apr 19 20:47:43 rhel5 kernel:  [<c048fa1a>] padzero+0x16/0x24
+Apr 19 20:47:43 rhel5 kernel:  [<c0490587>] load_elf_binary+0x846/0x1535
+Apr 19 20:47:43 rhel5 kernel:  [<c0453eda>] __alloc_pages+0x57/0x27e
+Apr 19 20:47:43 rhel5 kernel:  [<c04df825>] copy_from_user+0x31/0x5d
+Apr 19 20:47:43 rhel5 kernel:  [<c0472d7a>] search_binary_handler+0x99/0x219
+Apr 19 20:47:43 rhel5 kernel:  [<c047453d>] do_execve+0x158/0x1f5
+Apr 19 20:47:43 rhel5 kernel:  [<c040221f>] sys_execve+0x2a/0x4a
+Apr 19 20:47:43 rhel5 kernel:  [<c0403eff>] syscall_call+0x7/0xb
+Apr 19 20:47:43 rhel5 kernel:  =======================
+Apr 19 20:47:43 rhel5 kernel:  [<c48ec0b2>] allie_pre_handler+0x3b/0x61 [allie]
+Apr 19 20:47:43 rhel5 kernel:  [<c05fcc69>] kprobe_exceptions_notify+0x187/0x3dc
+Apr 19 20:47:43 rhel5 kernel:  [<c05fd756>] notifier_call_chain+0x19/0x29
+Apr 19 20:47:43 rhel5 kernel:  [<c05fc9cc>] do_int3+0x39/0x6a
+Apr 19 20:47:43 rhel5 kernel:  [<c05fc63a>] int3+0x1e/0x24
+Apr 19 20:47:43 rhel5 kernel:  [<c0487df1>] mpage_bio_submit+0x1/0x1d
+Apr 19 20:47:43 rhel5 kernel:  [<c0488ef8>] mpage_readpages+0x95/0xf9
+Apr 19 20:47:43 rhel5 kernel:  [<c48a9546>] ext3_get_block+0x0/0xbd [ext3]
+Apr 19 20:47:43 rhel5 kernel:  [<c0453557>] __rmqueue+0x32/0xa2
+Apr 19 20:47:43 rhel5 kernel:  [<c0453eda>] __alloc_pages+0x57/0x27e
+Apr 19 20:47:43 rhel5 kernel:  [<c48a89ea>] ext3_readpages+0x0/0x15 [ext3]
+Apr 19 20:47:43 rhel5 kernel:  [<c0455326>] __do_page_cache_readahead+0x11f/0x1c6
+Apr 19 20:47:43 rhel5 kernel:  [<c48a9546>] ext3_get_block+0x0/0xbd [ext3]
+Apr 19 20:47:43 rhel5 kernel:  [<c0453e19>] get_page_from_freelist+0x2a6/0x310
+Apr 19 20:47:43 rhel5 kernel:  [<c0452284>] filemap_nopage+0x151/0x315
+Apr 19 20:47:43 rhel5 kernel:  [<c045a8de>] __handle_mm_fault+0x172/0x87b
+Apr 19 20:47:43 rhel5 kernel:  [<c04dcc8b>] prio_tree_insert+0x12c/0x1f2
+Apr 19 20:47:43 rhel5 kernel:  [<c040492e>] common_interrupt+0x1a/0x20
+Apr 19 20:47:43 rhel5 kernel:  [<c05fd48f>] do_page_fault+0x20a/0x4b8
+Apr 19 20:47:43 rhel5 kernel:  [<c05fd285>] do_page_fault+0x0/0x4b8
+Apr 19 20:47:43 rhel5 kernel:  [<c0404a71>] error_code+0x39/0x40
+Apr 19 20:47:43 rhel5 kernel:  [<c04df9b7>] clear_user+0x34/0x42
+Apr 19 20:47:43 rhel5 kernel:  [<c048fa1a>] padzero+0x16/0x24
+Apr 19 20:47:43 rhel5 kernel:  [<c0490587>] load_elf_binary+0x846/0x1535
+Apr 19 20:47:43 rhel5 kernel:  [<c0453eda>] __alloc_pages+0x57/0x27e
+Apr 19 20:47:43 rhel5 kernel:  [<c04df825>] copy_from_user+0x31/0x5d
+Apr 19 20:47:43 rhel5 kernel:  [<c0472d7a>] search_binary_handler+0x99/0x219
+Apr 19 20:47:43 rhel5 kernel:  [<c047453d>] do_execve+0x158/0x1f5
+Apr 19 20:47:43 rhel5 kernel:  [<c040221f>] sys_execve+0x2a/0x4a
+Apr 19 20:47:43 rhel5 kernel:  [<c0403eff>] syscall_call+0x7/0xb
+Apr 19 20:47:43 rhel5 kernel:  =======================
+Apr 19 20:47:48 rhel5 kernel: allie_exit: called
+----
