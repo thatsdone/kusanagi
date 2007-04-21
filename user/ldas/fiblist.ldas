@@ -1,0 +1,91 @@
+#
+# fiblist.ldas is an Alicia LDAS script for fib entry listing:
+# 
+# Copyright (C) 2007  Masanori ITOH
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#	
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# AUTHOR:
+#   Masanori ITOH  <masanori.itoh@gmail.com>
+#
+# $Id$
+#
+sub fiblist {
+    $text = pass_through('kmem -s');
+    @km = split(/\n/, $text);
+    $count = 0;
+    foreach (@km) {
+	($cache, $name, $objsize, $allocated, $total, $slabs, $ssize)
+	    = split(/[ \t]+/, $_);
+	if ($name eq "ip_fib_hash") {
+	    $ip_fib_hash = $cache;
+	    $count++;
+	    if ($count >= 2) {
+		break;
+	    }
+	} elsif ($name eq "fib6_nodes") {
+	    $fib6_nodes = $cache;
+	    $count++;
+	    if ($count >= 2) {
+		break;
+	    }
+	}
+    }
+#
+    @array = ();
+# IPv4
+    push(@array, "IPv4 - fib_node: / fn_key (IP address)");
+    $text = pass_through("kmem -S " . $ip_fib_hash);
+    @km = split(/\n/, $text);
+    foreach (@km) {
+	if ($_ =~ /^ / && $_ =~ /\[/) {
+	    $_ =~ s/[\[\]]//g;
+	    $str = pass_through("fib_node.fn_key " . $_);
+	    $str =~ s/(fn_key|=| )//g;
+	    push(@array, sprintf("%s : %s (%d.%d.%d.%d)",
+				 $_,
+				 sprintf("%08x", $str),
+				 0x000000ff & $str,
+				 (0x0000ff00 & $str) >> 8,
+				 (0x00ff0000 & $str) >> 16,
+				 (0xff000000 & $str) >> 24,
+				 ));
+	}
+    }
+# IPv6
+    push(@array, "IPv6 - fib6_node: IP address / fn_bit");
+    $text = pass_through("kmem -S " . $fib6_nodes);
+    @km = split(/\n/, $text);
+    foreach (@km) {
+	if ($_ =~ /^ / && $_ =~ /\[/) {
+	    $_ =~ s/[\[\]]//g;
+	    $leaf = pass_through("fib6_node.leaf " . $_);
+	    $leaf =~ s/(leaf| |=|,)//g;
+	    $bit = pass_through("fib6_node.fn_bit " . $_);
+	    $bit =~ s/(fn_bit| |=|,)//g;
+	    $dst = pass_through("rd -8 -o 252 -x " . $leaf . " 16");
+	    $dst =~ s/^[0-9a-f]+: //g;
+	    push(@array, sprintf("%s : %s / %s",
+				 $_,
+				 $dst,
+ 				 $bit
+				 ));
+	}
+    }
+  bailout:
+    return join "\n", @array;
+}
+# LDAS has to return "1".
+1;
