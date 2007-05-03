@@ -1,0 +1,114 @@
+#
+# btx.ldas is an Alicia LDAS script as a better backtrace alternative:
+# 
+# Copyright (C) 2007  Masanori ITOH
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#	
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# SYNOPSYS:
+#   alicia> load 'btx.ldas'
+#   alicia> btx (pid|taskp) ["debug"];
+#
+# LIMITATIONS:
+#   - tested on only FedoraCore6 (x86_64)
+#   - '__sched_text_start' is assumed for disassemble results of schedule()
+#     calls
+#
+# AUTHOR:
+#   Masanori ITOH  <masanori.itoh@gmail.com>
+#
+# $Id$
+#
+sub btx {
+    my ($arg1, $arg2) = @_;
+    local $callee_save = "";
+    local $debug = 0;
+    local $count = 0;
+    
+    if ($arg2 eq "debug") {
+	$debug = 1;
+    }
+
+    $text = pass_through("bt " . $arg1);
+
+    @st = split(/\n/, $text);
+    $count = 0;
+    foreach (@st) {
+	if ($_ =~ /[\[\]]/) {
+	    $_ =~ s/^[ \t]+//g;
+	    ($num, $frame_address, $symbol, $at, $return_address)
+		= split(/[ \t]+/, $_);
+
+	    if ($num =~ "#0") {
+		printf("#%-2d %s %s at %s\n",
+		       $count,
+		       $frame_address,
+		       $symbol, $return_address);
+		$count++;
+
+	    } elsif ($symbol eq "system_call") {
+		
+		printf("#%-2d %s %s at %s\n",
+		       $count,
+		       $frame_address,
+		       $symbol, $return_address);
+		$count++;
+
+	    } else {
+		# convert string expression of an address into binary format.
+		$check_address = hex("0x" . $return_address);
+		$check_address -= 0x5;
+		$addr = sprintf("%x", $check_address);
+		# Assuming there is a callq instruction on the return
+		# address - 0x5, disassemble the address and see if it's 
+		# surely call instruction.
+		$tmp = pass_through("dis " . $addr);
+		@dis = split(/\n/, $tmp);
+		$dis[1] =~ s/^[ \t]+//g;
+		if ($dis[1] =~ /callq/) {
+		    # found call instruction
+		    ($tmp1, $tmp2, $callee_symbol) =
+			split(/[ \t]+/, $dis[1]);
+		    $callee_symbol =~ s/[<>]//g;
+		    # Check if the callq argument matches with the
+		    # previous stack frame function.
+		    if ($callee_symbol eq $callee_save ||
+			$callee_symbol eq "__sched_text_start") {
+			printf("#%-2d %s %s at %s\n",
+			       $count,
+			       $frame_address,
+			       $symbol, $return_address);
+			$count++;
+			$callee_save = $symbol;
+		    } else {
+			if ($debug) {
+			    printf("  DEBUG: callee doesn't match for '%s'\n",
+				   $_);
+			}
+		    }
+		} else {
+		    # not call instruction
+		    if ($debug) {
+			printf("  DEBUG: cannot find 'callq' for '%s'\n", $_);
+		    }
+		}
+	    }
+	} else {
+	    print $_, "\n";
+	}
+    }
+}
+# LDAS has to return "1".
+1;
