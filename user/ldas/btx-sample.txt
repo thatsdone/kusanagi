@@ -1,0 +1,67 @@
+
+The below are sample results by 'btx.ldas' and crash 'bt' command 
+of the same "sendmail" process taken on my PentiumD 930 / FedoraCore 6
+(x86_64) box.
+
+$Id$
+----
+
+(1) result of crash 'bt' command
+
+Among the 22 stack frames shown below, there are only 6 correct ones.
+
+alicia> bt 2086
+PID: 2086   TASK: ffff81007f108080  CPU: 0   COMMAND: "sendmail"
+ #0 [ffff810078291950] schedule at ffffffff80260ab2
+ #1 [ffff810078291a30] schedule_timeout at ffffffff80261416
+ #2 [ffff810078291a80] do_select at ffffffff80211369
+ #3 [ffff810078291b70] proc_alloc_inode at ffffffff802f48dc
+ #4 [ffff810078291b80] alloc_inode at ffffffff80225746
+ #5 [ffff810078291bb0] inotify_d_instantiate at ffffffff802e6a70
+ #6 [ffff810078291bd0] d_rehash at ffffffff80240566
+ #7 [ffff810078291bf0] proc_lookup at ffffffff802277cd
+ #8 [ffff810078291c20] proc_root_lookup at ffffffff80254ddd
+ #9 [ffff810078291c40] do_lookup at ffffffff8020cade
+#10 [ffff810078291c70] dput at ffffffff8020cff4
+#11 [ffff810078291c90] __link_path_walk at ffffffff8020a196
+#12 [ffff810078291cf0] vsnprintf at ffffffff80219e0f
+#13 [ffff810078291d00] link_path_walk at ffffffff8020e776
+#14 [ffff810078291d90] core_sys_select at ffffffff802d8dd8
+#15 [ffff810078291e00] __next_cpu at ffffffff8033bf39
+#16 [ffff810078291e10] nr_running at ffffffff802861c5
+#17 [ffff810078291e30] loadavg_read_proc at ffffffff802f7be7
+#18 [ffff810078291e60] lock_kernel at ffffffff802627fb
+#19 [ffff810078291e80] de_put at ffffffff802f480b
+#20 [ffff810078291f20] sys_select at ffffffff80216185
+#21 [ffff810078291f80] system_call at ffffffff8025c00e
+    RIP: 00002aaaac4cdb93  RSP: 00007fff27a8fcb8  RFLAGS: 00010206
+    RAX: 0000000000000017  RBX: ffffffff8025c00e  RCX: 000000009999999a
+    RDX: 0000000000000000  RSI: 00007fff27a90580  RDI: 0000000000000005
+    RBP: 00007fff27a90580   R8: 00007fff27a90600   R9: 00007fff27a8eadf
+    R10: 0000000000000000  R11: 0000000000000246  R12: 0000000000000004
+    R13: 0000000000000001  R14: 0000000000000001  R15: 0000555555816330
+    ORIG_RAX: 0000000000000017  CS: 0033  SS: 002b
+
+(2) btx.ldas result
+
+  Below is an example using btx.ldas and Alicia-1.1.5.
+  Extra 16 frames above were suppressed.
+
+alicia> load 'btx.ldas';
+alicia> btx 2086;
+PID: 2086   TASK: ffff81007f108080  CPU: 0   COMMAND: "sendmail"
+#0  [ffff810078291950] schedule at ffffffff80260ab2
+#1  [ffff810078291a30] schedule_timeout at ffffffff80261416
+#2  [ffff810078291a80] do_select at ffffffff80211369
+#3  [ffff810078291d90] core_sys_select at ffffffff802d8dd8
+#4  [ffff810078291f20] sys_select at ffffffff80216185
+#5  [ffff810078291f80] system_call at ffffffff8025c00e
+    RIP: 00002aaaac4cdb93  RSP: 00007fff27a8fcb8  RFLAGS: 00010202
+    RAX: 0000000000000017  RBX: ffffffff8025c00e  RCX: 000000001eb851ec
+    RDX: 0000000000000000  RSI: 00007fff27a90580  RDI: 0000000000000005
+    RBP: 00007fff27a90580   R8: 00007fff27a90600   R9: 00007fff27a8eadf
+    R10: 0000000000000000  R11: 0000000000000246  R12: 0000000000000004
+    R13: 0000000000000001  R14: 0000000000000001  R15: 0000555555816330
+    ORIG_RAX: 0000000000000017  CS: 0033  SS: 002b
+
+
