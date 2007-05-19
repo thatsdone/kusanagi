@@ -20,7 +20,7 @@ DESCRIPTION
                   0 : Monitors if number of context switches per second exceeds
                       the given threshold. (default)
                   1 : Monitors if specified categories of CPU consumption rate
-                      exceeds the given threshold.
+                      exceed the given threshold.
     interval	  Interval in seconds to monitor the specified quantity.
                   Default is 60 seconds.
     count         Monitoring count. Default is 2.
@@ -50,11 +50,11 @@ DESCRIPTION
   Here are several remarks.
 
   * The in-kernel function 'nr_context_switches()' is not a publicly
-    exported to general loadable kernel modules, so you have to get
+    exported one to general loadable kernel modules, so you have to get
     the address from your running kernel through /proc/kallsyms.
 
-  * CPU consumption rates are calculated as the same way with utilities 
-    contained in 'sysstat' package such as 'sar'.
+  * CPU consumption rates are calculated as the same way with common utilities 
+    included in 'sysstat' package such as 'sar'.
     That is, increased CPU time in a particular category such as user mode
     will be divided by total CPU time between two sampling timings, not
     by the actual interval time between the two timings.
@@ -131,12 +131,18 @@ LICENSE
   Copyright (C) 2007 Masanori ITOH <masanori.itoh@gmail.com>
 
 HISTORY
+  May 18, 2007 v2.1 Bug fix
+  Apr 11, 2007 v2.0 CPU consumption rate monitoring
+  Mar 16, 2007 v1.0 Initial revision with context switch monitoring
+
+NOTES
   Originally, this module was called 'csspanic', but this module can be
   a good start point for monitoring various in-kernel quantities such as
   CPU busy rate. So,it's changed.
 
   Someone might feel that there could be some connections with a novel
   by J.D. Salinger[4] or deeper thing[5], but never mind that. :)
+
 
 REFERENCES
   [1] http://archives.postgresql.org/pgsql-performance/2006-11/msg00037.php
