@@ -191,7 +191,6 @@ static int rye_check_cpu(struct rye_sample *now,
     printk("rye_check_cpu: DEBUG: %llu, %llu\n", diff_total, work);
 #endif
     do_div(work, (uint32_t)diff_total);
-    do_div(work, (uint32_t)now->num_cpu);
 
     if (work >= (unsigned long long)threshold) {
 	printk("rye_check_cpu: %llu (%%)\n", work);	
@@ -297,7 +296,7 @@ static int rye_thread(void *arg)
 		printk("rye_thread: Got you! :)\n");
 	    }
 	}
-	rs_before.s.csw = rs_now.s.csw;
+	rs_before = rs_now;
 	
 	before = now;
     }
