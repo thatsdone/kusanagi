@@ -10,37 +10,140 @@ Kusanagi Project
 Kusanagi Project
 </h1>
 <hr>
-<h3>
-About
-</h3>
-<blockquote>
-kusanagi is a collection of tools intended for trouble shooting
-including tools for system behavior analysis(e.g., an oprofile log
-analyzer) and utilities(loadable kernel modules) to catch specific (in-kernel) events etc.
-</blockquote>
-<h3>
+[<a href = "#news">News</a>]
+[<a href = "#about">About</a>]
+[<a href = "#resources">Resources</a>]
+[<a href = "#download">Download</a>]
+[<a href = "#license">License</a>]
+<hr>
+<!---------------------------------------------------------------------------->
+<a name="news">
+<h2>
 News
-</h3>
+</h2>
+</a>
 <ul>
   <li> May 8, 2007. Kusanagi Project Web page opened.
+  <li> May 28, 2007. Download files moved here from the temporary space.
+      
 </ul>
-<h3>
+<!---------------------------------------------------------------------------->
+<a name="about">
+<h2>
+About
+</h2>
+</a>
+<table>
+  <tr>
+    <td>
+	<img src="KusanagiProject50.jpg">
+    </td>
+    <td valign=center>
+	Kusanagi is a collection of tools intended for trouble shooting
+	including both user space and kernel space tools.
+	<br>
+	Granted that there are many very useful tools applicable for our
+	trouble	shooting activities, but often those tools are inconvenient,
+	have restrictions, difficult to understand their output or so.
+	From another point of view, often we want to have a collected
+	knowledge base to exploit those convenient tools.
+	<br>
+	Here is a collection of tools and knowhow document intended for
+	those needs.
+	Tools here would help you to analyze system behavior, catch evidences
+	for your guesses or reproduce troubles etc.<br>
+    </td>
+  </tr>
+</table>
+<!---------------------------------------------------------------------------->
+<a name="resources">
+<h2>
+Resources
+</h2>
+</a>
+Here is a brief list of what we have now.
+<ul>
+  <li> <b>Tools</b>
+      <ul>
+	<li> <b>User Space Tools</b>
+	    <ul>
+	      <li> <a name="opanalyze">
+		  <b>opanalyze -- an oprofile log file analyzer</b>
+		  </a>
+		  <br>
+		  opanalyze is an oprofile log analyzer by which we can detect
+		  discontinuous or not smooth changes in sample counts of
+		  symbols and understand the system behavior.
+	      <li> <a name="btx">
+		  <b>btx -- a better back trace for crash written in LDAS</b>
+		  </a>
+		  <br>
+		  btx is an LDAS script of Alicia, a front-end of crash
+		  utility, providing better stack traces.
+	      <li> <a name="cpuload">
+		  <b>load -- a Simple CPU Load Generator</b>
+		  </a>
+		  <br>
+		  Often we need to generate a particular CPU load such as 65%
+		  of total CPU power in order to reproduce the trouble. This
+		  poor program do that.
+	    </ul>
+	<li> <b>Kernel Space Tools</b>
+	    <ul>
+	      <li><a name="rye">
+		  <b>rye -- an in-kernel event catcher</b>
+		  </a>
+		  <br>
+		  rye catches a specific in-kernel event such as a context
+		  switch storm and causes a panic.<br>
+		  Use it with your favorite crash dump utility such as kdump.
+		  <br>
+      
+	      <li> <a name="allie">
+		  <b>allie -- a kprobe wrapper for general trouble shooting</b>
+		  </a>
+		  <br>
+		  Using allie you can catch calls of a particular in-kernel
+		  function and see stack traces (or cause a panic).
+		  <br>
+      
+	      <li> <a name="holden">
+		  <b>holden -- a network trouble shooting helper</b>
+		  </a>
+		  <br>
+		  holden uses netfilter to catch TCP packets with a specific
+		  combination of bits in their TCP headers.
+	    </ul>
+      </ul>
+    <li><b>Documents</b>
+	<ul>
+	  <li> Stack Traces of IA32/Linux ([japanese], in preparation)
+	</ul>
+</ul>
+<!---------------------------------------------------------------------------->
+<a name="download">
+<h2>
 Download
-</h3>
+</h2>
+</a>
 <ul>
   <li><a href = "http://sourceforge.net/projects/kusanagi/">Download page</a>
 </ul>
-<h3>
+<!---------------------------------------------------------------------------->
+<a name="license">
+<h2>
 License
-</h3>
+</h2>
+</a>
 <blockquote>
-GPL2
+GPL2(tools), FDL(documents)
 </blockquote>
 <hr>
-<img src="http://sflogo.sourceforge.net/sflogo.php?group_id=162714&type=1" alt "Sourceforge.net">
+<img src="http://sflogo.sourceforge.net/sflogo.php?group_id=162714&type=1"
+  alt "Sourceforge.net">
 <p>
 <!-- hhmts start -->
-Last modified: Fri May 11 01:08:07 JST 2007
+Last modified: Mon May 28 20:56:53 JST 2007
 <!-- hhmts end -->
 <!-- $Id$ -->
 <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
