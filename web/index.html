@@ -14,6 +14,7 @@ Kusanagi Project
 [<a href = "#about">About</a>]
 [<a href = "#resources">Resources</a>]
 [<a href = "#download">Download</a>]
+[<a href = "#misc">Misc</a>]
 [<a href = "#license">License</a>]
 <hr>
 <!---------------------------------------------------------------------------->
@@ -23,9 +24,9 @@ News
 </h2>
 </a>
 <ul>
-  <li> May 8, 2007. Kusanagi Project Web page opened.
-  <li> May 28, 2007. Download files moved here from the temporary space.
-      
+  <li> May 28, 2007. Currently available download files moved here
+      from a temporary space.
+  <li> May 8, 2007. Kusanagi project web page opened.
 </ul>
 <!---------------------------------------------------------------------------->
 <a name="about">
@@ -36,7 +37,7 @@ About
 <table>
   <tr>
     <td>
-	<img src="KusanagiProject50.jpg">
+	<img src="KusanagiProject50.jpg" alt="Kusanagi Project Schema">
     </td>
     <td valign=center>
 	Kusanagi is a collection of tools intended for trouble shooting
@@ -44,14 +45,15 @@ About
 	<br>
 	Granted that there are many very useful tools applicable for our
 	trouble	shooting activities, but often those tools are inconvenient,
-	have restrictions, difficult to understand their output or so.
+	have restrictions, difficult to understand their outputs or
+	extract conclusive results etc.
 	From another point of view, often we want to have a collected
 	knowledge base to exploit those convenient tools.
 	<br>
-	Here is a collection of tools and knowhow document intended for
-	those needs.
-	Tools here would help you to analyze system behavior, catch evidences
-	for your guesses or reproduce troubles etc.<br>
+	The resources of Kusanagi Project are intended for those kind of needs.
+	Tools and documents here cover the light blue region of the left
+	picture, and they would help you to analyze system behavior,
+	catch evidences	for your guesses or reproduce troubles etc.<br>
     </td>
   </tr>
 </table>
@@ -81,12 +83,12 @@ Here is a brief list of what we have now.
 		  btx is an LDAS script of Alicia, a front-end of crash
 		  utility, providing better stack traces.
 	      <li> <a name="cpuload">
-		  <b>load -- a Simple CPU Load Generator</b>
+		  <b>load -- a simple CPU load generator</b>
 		  </a>
 		  <br>
 		  Often we need to generate a particular CPU load such as 65%
-		  of total CPU power in order to reproduce the trouble. This
-		  poor program do that.
+		  of total CPU power in order to reproduce troubles.
+		  This poor program does that.
 	    </ul>
 	<li> <b>Kernel Space Tools</b>
 	    <ul>
@@ -97,27 +99,25 @@ Here is a brief list of what we have now.
 		  rye catches a specific in-kernel event such as a context
 		  switch storm and causes a panic.<br>
 		  Use it with your favorite crash dump utility such as kdump.
-		  <br>
-      
-	      <li> <a name="allie">
-		  <b>allie -- a kprobe wrapper for general trouble shooting</b>
-		  </a>
-		  <br>
-		  Using allie you can catch calls of a particular in-kernel
-		  function and see stack traces (or cause a panic).
-		  <br>
-      
 	      <li> <a name="holden">
 		  <b>holden -- a network trouble shooting helper</b>
 		  </a>
 		  <br>
 		  holden uses netfilter to catch TCP packets with a specific
-		  combination of bits in their TCP headers.
+		  combination of bits in their TCP headers and shows stack
+		  traces (or causes a panic, if needed).
+	      <li> <a name="allie">
+		  <b>allie -- a kprobe wrapper for general trouble shooting</b>
+		  </a>
+		  <br>
+		  Using allie you can catch calls of a particular in-kernel
+		  function and see stack traces (or cause a panic if needed).
 	    </ul>
       </ul>
     <li><b>Documents</b>
 	<ul>
-	  <li> Stack Traces of IA32/Linux ([japanese], in preparation)
+	  <li> <b>Why Kusanagi Project?</b> (in preparation)
+	  <li> <b>Stack Traces of IA32/Linux</b> ([japanese], in preparation)
 	</ul>
 </ul>
 <!---------------------------------------------------------------------------->
@@ -130,6 +130,17 @@ Download
   <li><a href = "http://sourceforge.net/projects/kusanagi/">Download page</a>
 </ul>
 <!---------------------------------------------------------------------------->
+<a name="misc">
+<h2>
+Misc
+</h2>
+</a>
+<ul>
+  <li>TODO (TBD)
+  <li>Links (TBD)
+  <li>Origin of the Project Name (TBD)
+</ul>
+<!---------------------------------------------------------------------------->
 <a name="license">
 <h2>
 License
@@ -138,12 +149,13 @@ License
 <blockquote>
 GPL2(tools), FDL(documents)
 </blockquote>
+<!---------------------------------------------------------------------------->
 <hr>
 <img src="http://sflogo.sourceforge.net/sflogo.php?group_id=162714&type=1"
   alt "Sourceforge.net">
 <p>
 <!-- hhmts start -->
-Last modified: Mon May 28 20:56:53 JST 2007
+Last modified: Tue May 29 15:00:14 JST 2007
 <!-- hhmts end -->
 <!-- $Id$ -->
 <script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
