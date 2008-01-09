@@ -1,0 +1,191 @@
+diff -ru linux-2.6.22/fs/proc/proc_misc.c ../linux-2.6.22/fs/proc/proc_misc.c
+--- linux-2.6.22/fs/proc/proc_misc.c	2007-07-09 08:32:17.000000000 +0900
++++ ../linux-2.6.22/fs/proc/proc_misc.c	2007-10-02 22:41:15.000000000 +0900
+@@ -114,7 +114,30 @@
+ 
+ 	return proc_calc_metrics(page, start, off, count, eof, len);
+ }
+-
++#if 1
++static int sigprof_read_proc(char *page, char **start, off_t off,
++				 int count, int *eof, void *data)
++{
++    int i;
++    int len = 0, total_len = 0;
++    char *cp = page;
++    sigprof_t sp;
++    
++    read_sigprof(&sp, NULL);
++
++    len = sprintf(page, "SIG   COUNT\n");
++    total_len += len;
++    cp += len;    
++    for (i = 0; i < _NSIG; i++) {
++	len = sprintf(cp, " [%2d] %10d\n", i,
++		       atomic_read(&(sp.sig[i])));
++	total_len += len;
++	cp += len;
++    }
++    
++    return proc_calc_metrics(page, start, off, count, eof, total_len);
++}
++#endif
+ static int meminfo_read_proc(char *page, char **start, off_t off,
+ 				 int count, int *eof, void *data)
+ {
+@@ -675,6 +698,7 @@
+ 		{"cmdline",	cmdline_read_proc},
+ 		{"locks",	locks_read_proc},
+ 		{"execdomains",	execdomains_read_proc},
++		{"sigprof",	sigprof_read_proc},		
+ 		{NULL,}
+ 	};
+ 	for (p = simple_ones; p->name; p++)
+diff -ru linux-2.6.22/include/linux/signal.h ../linux-2.6.22/include/linux/signal.h
+--- linux-2.6.22/include/linux/signal.h	2007-07-09 08:32:17.000000000 +0900
++++ ../linux-2.6.22/include/linux/signal.h	2007-10-01 23:22:53.000000000 +0900
+@@ -368,7 +368,18 @@
+ #define sig_fatal(t, signr) \
+ 	(!siginmask(signr, SIG_KERNEL_IGNORE_MASK|SIG_KERNEL_STOP_MASK) && \
+ 	 (t)->sighand->action[(signr)-1].sa.sa_handler == SIG_DFL)
++#if 1
++#include <asm/atomic.h>
++typedef struct sigprof
++{
++    atomic_t sig[_NSIG];
++} sigprof_t;
+ 
++void atomic_inc_sigprof(int, struct task_struct *);
++void atomic_dec_sigprof(int, struct task_struct *);
++void read_sigprof(sigprof_t *, struct task_struct *);
++
++#endif
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _LINUX_SIGNAL_H */
+diff -ru linux-2.6.22/kernel/signal.c ../linux-2.6.22/kernel/signal.c
+--- linux-2.6.22/kernel/signal.c	2007-07-09 08:32:17.000000000 +0900
++++ ../linux-2.6.22/kernel/signal.c	2007-10-03 00:25:45.000000000 +0900
+@@ -31,6 +31,7 @@
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+ #include <asm/siginfo.h>
++#include <asm/string.h>
+ #include "audit.h"	/* audit_signal_info() */
+ 
+ /*
+@@ -39,6 +40,9 @@
+ 
+ static struct kmem_cache *sigqueue_cachep;
+ 
++#if 1
++static sigprof_t global_sigprof;
++#endif
+ 
+ static int sig_ignored(struct task_struct *t, int sig)
+ {
+@@ -709,6 +713,9 @@
+ 		 */
+ 			return -EAGAIN;
+ 	}
++#if 1
++	atomic_inc_sigprof(sig, t);
++#endif
+ 
+ out_set:
+ 	sigaddset(&signals->signal, sig);
+@@ -773,6 +780,9 @@
+ 		}
+ 	}
+ 	ret = specific_send_sig_info(sig, info, t);
++#if 0
++	atomic_inc_sigprof(sig, t);
++#endif
+ 	spin_unlock_irqrestore(&t->sighand->siglock, flags);
+ 
+ 	return ret;
+@@ -995,6 +1005,9 @@
+ 		if (lock_task_sighand(p, &flags)) {
+ 			ret = __group_send_sig_info(sig, info, p);
+ 			unlock_task_sighand(p, &flags);
++#if 1
++			atomic_inc_sigprof(sig, p);
++#endif
+ 		}
+ 	}
+ 
+@@ -1323,8 +1336,11 @@
+ 	sigaddset(&p->pending.signal, sig);
+ 	if (!sigismember(&p->blocked, sig))
+ 		signal_wake_up(p, sig == SIGKILL);
++#if 1
++	atomic_inc_sigprof(sig, p);
++#endif
+ 
+-out:
++  out:
+ 	unlock_task_sighand(p, &flags);
+ out_err:
+ 	rcu_read_unlock();
+@@ -1376,6 +1392,9 @@
+ 	sigaddset(&p->signal->shared_pending.signal, sig);
+ 
+ 	__group_complete_signal(sig, p);
++#if 1
++	atomic_inc_sigprof(sig, p);
++#endif
+ out:
+ 	spin_unlock_irqrestore(&p->sighand->siglock, flags);
+ 	read_unlock(&tasklist_lock);
+@@ -2561,5 +2580,51 @@
+ 
+ void __init signals_init(void)
+ {
++#if 1
++	int i;
++#endif
+ 	sigqueue_cachep = KMEM_CACHE(sigqueue, SLAB_PANIC);
++#if 1
++	for (i = 0; i < _NSIG; i++) {
++		atomic_set(&(global_sigprof.sig[i]), 0);
++	}
++#endif
++}
++
++#if 1
++void atomic_inc_sigprof(int sig, struct task_struct *tsk) 
++{
++	if ((sig < 0) || sig > SIGRTMAX) {
++		BUG();
++	}
++	atomic_inc(&(global_sigprof.sig[sig]));
++	if (tsk) {
++		;
++	}
++	return;
++}
++
++void atomic_dec_sigprof(int sig, struct task_struct *tsk) 
++{
++	if ((sig < 0) || sig > SIGRTMAX) {
++		BUG();
++	}
++	atomic_dec(&(global_sigprof.sig[sig]));
++	if (tsk) {
++		;
++	}
++	return;
+ }
++
++void read_sigprof(sigprof_t *psprof, struct task_struct *tsk)
++{
++	if (!tsk) {
++		memcpy(psprof, &global_sigprof, sizeof(sigprof_t));
++	}
++	return;
++}
++	
++EXPORT_SYMBOL(atomic_inc_sigprof);
++EXPORT_SYMBOL(atomic_dec_sigprof);
++EXPORT_SYMBOL(read_sigprof);
++#endif

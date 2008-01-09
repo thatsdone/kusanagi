@@ -1,0 +1,196 @@
+diff -ru linux-2.6.18.orig/fs/proc/proc_misc.c linux-2.6.18/fs/proc/proc_misc.c
+--- linux-2.6.18.orig/fs/proc/proc_misc.c	2006-09-20 12:42:06.000000000 +0900
++++ linux-2.6.18/fs/proc/proc_misc.c	2007-10-05 20:52:06.000000000 +0900
+@@ -114,6 +114,30 @@
+ 	return proc_calc_metrics(page, start, off, count, eof, len);
+ }
+ 
++#ifdef CONFIG_SIGPROF
++static int sigprof_read_proc(char *page, char **start, off_t off,
++				 int count, int *eof, void *data)
++{
++    int i;
++    int len = 0, total_len = 0;
++    char *cp = page;
++    sigprof_t sp;
++    
++    sigprof_read(&sp, NULL);
++
++    len = sprintf(page, "SIG   COUNT\n");
++    total_len += len;
++    cp += len;    
++    for (i = 0; i <= _NSIG; i++) {
++	len = sprintf(cp, " [%2d] %10d\n", i,
++		       atomic_read(&(sp.sig[i])));
++	total_len += len;
++	cp += len;
++    }
++    
++    return proc_calc_metrics(page, start, off, count, eof, total_len);
++}
++#endif
+ static int meminfo_read_proc(char *page, char **start, off_t off,
+ 				 int count, int *eof, void *data)
+ {
+@@ -673,6 +697,9 @@
+ 		{"cmdline",	cmdline_read_proc},
+ 		{"locks",	locks_read_proc},
+ 		{"execdomains",	execdomains_read_proc},
++#ifdef CONFIG_SIGPROF
++		{"sigprof",	sigprof_read_proc},
++#endif
+ 		{NULL,}
+ 	};
+ 	for (p = simple_ones; p->name; p++)
+diff -ru linux-2.6.18.orig/include/linux/signal.h linux-2.6.18/include/linux/signal.h
+--- linux-2.6.18.orig/include/linux/signal.h	2006-09-20 12:42:06.000000000 +0900
++++ linux-2.6.18/include/linux/signal.h	2007-10-05 20:52:06.000000000 +0900
+@@ -241,6 +241,17 @@
+ struct pt_regs;
+ extern int get_signal_to_deliver(siginfo_t *info, struct k_sigaction *return_ka, struct pt_regs *regs, void *cookie);
+ 
++#ifdef CONFIG_SIGPROF
++#include <asm/atomic.h>
++typedef struct sigprof
++{
++    atomic_t sig[_NSIG + 1];
++} sigprof_t;
++
++void sigprof_inc(int, struct task_struct *);
++void sigprof_dec(int, struct task_struct *);
++void sigprof_read(sigprof_t *, struct task_struct *);
++#endif /* CONFIG_SIGPROF */
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _LINUX_SIGNAL_H */
+diff -ru linux-2.6.18.orig/init/Kconfig linux-2.6.18/init/Kconfig
+--- linux-2.6.18.orig/init/Kconfig	2006-09-20 12:42:06.000000000 +0900
++++ linux-2.6.18/init/Kconfig	2007-10-05 20:52:06.000000000 +0900
+@@ -408,6 +408,14 @@
+ 	  option allows the disabling of the VM event counters.
+ 	  /proc/vmstat will only show page counts.
+ 
++config SIGPROF
++	bool "Enable SIGNAL profiling (EXPERIMENTAL)"
++	default n
++	help
++	  Collect information the number of signals delivered.
++
++	  Say N if unsure.
++
+ endmenu		# General setup
+ 
+ config RT_MUTEXES
+diff -ru linux-2.6.18.orig/kernel/signal.c linux-2.6.18/kernel/signal.c
+--- linux-2.6.18.orig/kernel/signal.c	2006-09-20 12:42:06.000000000 +0900
++++ linux-2.6.18/kernel/signal.c	2007-10-05 20:54:35.000000000 +0900
+@@ -27,6 +27,9 @@
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
+ #include <asm/siginfo.h>
++#ifdef CONFIG_SIGPROF
++#include <asm/string.h>
++#endif
+ #include "audit.h"	/* audit_signal_info() */
+ 
+ /*
+@@ -336,6 +339,9 @@
+ 	}
+ }
+ 
++#ifdef CONFIG_SIGPROF
++static sigprof_t global_sigprof;
++#endif
+ 
+ /* Notify the system that a driver wants to block all signals for this
+  * process, and wants to be notified if any signals at all were to be
+@@ -753,6 +759,9 @@
+ 		 */
+ 			return -EAGAIN;
+ 	}
++#ifdef CONFIG_SIGPROF
++	sigprof_inc(sig, t);
++#endif
+ 
+ out_set:
+ 	sigaddset(&signals->signal, sig);
+@@ -1050,6 +1059,9 @@
+ 		if (lock_task_sighand(p, &flags)) {
+ 			ret = __group_send_sig_info(sig, info, p);
+ 			unlock_task_sighand(p, &flags);
++#ifdef CONFIG_SIGPROF
++			sigprof_inc(sig, p);
++#endif
+ 		}
+ 	}
+ 
+@@ -1359,6 +1371,9 @@
+ 	sigaddset(&p->pending.signal, sig);
+ 	if (!sigismember(&p->blocked, sig))
+ 		signal_wake_up(p, sig == SIGKILL);
++#ifdef CONFIG_SIGPROF
++	sigprof_inc(sig, p);
++#endif
+ 
+ out:
+ 	unlock_task_sighand(p, &flags);
+@@ -1407,6 +1422,9 @@
+ 	sigaddset(&p->signal->shared_pending.signal, sig);
+ 
+ 	__group_complete_signal(sig, p);
++#ifdef CONFIG_SIGPROF
++	sigprof_inc(sig, p);
++#endif
+ out:
+ 	spin_unlock_irqrestore(&p->sighand->siglock, flags);
+ 	read_unlock(&tasklist_lock);
+@@ -2584,4 +2602,49 @@
+ 				  sizeof(struct sigqueue),
+ 				  __alignof__(struct sigqueue),
+ 				  SLAB_PANIC, NULL, NULL);
++#ifdef CONFIG_SIGPROF
++	memset(&global_sigprof, 0x0, sizeof(sigprof_t));
++#endif
+ }
++
++#ifdef CONFIG_SIGPROF
++void sigprof_inc(int sig, struct task_struct *tsk) 
++{
++	atomic_inc(&(global_sigprof.sig[sig]));
++	if (tsk) {
++		;
++	}
++	return;
++}
++
++void sigprof_dec(int sig, struct task_struct *tsk) 
++{
++	atomic_dec(&(global_sigprof.sig[sig]));
++	if (tsk) {
++		;
++	}
++	return;
++}
++
++/*
++sigprof_t *sigprof_task(struct task_struct *tsk)
++{
++	return NULL;
++}
++*/
++void sigprof_read(sigprof_t *psp, struct task_struct *tsk)
++{
++	if (!tsk) {
++		memcpy(psp, &global_sigprof, sizeof(sigprof_t));
++	} else {
++		/*
++		memcpy(psp, sigprof_task(tsk), sizeof(sigprof_t));
++		*/
++	}
++	return;
++}
++	
++EXPORT_SYMBOL(sigprof_inc);
++EXPORT_SYMBOL(sigprof_dec);
++EXPORT_SYMBOL(sigprof_read);
++#endif
