@@ -3,7 +3,7 @@ WHAT IS SIGPROF
   'sigprof' accumulates the number of SIGNALs sent in the kernel space
   from the boot time and shows per SIGNAL statistics through /proc/sigprof.
   Note that the accumulation is done for 'sent' SIGNALs, not for 'delivered'
-  ones. Thus, even if a process ignored secific SIGNALs, they will be taken
+  ones. Thus, even if a process ignored specific SIGNALs, they will be taken
   into the statistics.
 
 WHY SIGPROF
