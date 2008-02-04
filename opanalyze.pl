@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 # opanalyze.pl is a perl script for analyzing oprofile results:
 # 
-# Copyright (C) 2007  Masanori ITOH
+# Copyright (C) 2007,2008  Masanori ITOH
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -108,8 +108,6 @@ $cutoff = 1000;
 $begin_time = "";
 $end_time = "";
 #
-$appname_base = 4;
-$symbol_base = 5;
 #
 $gp_terminal = "png";
 $gp_size = "";
@@ -148,6 +146,7 @@ while ($i <= $#ARGV) {
     } elsif ($ARGV[$i] eq "-F") {
 	$i++;
 	$factor = $ARGV[$i];
+
     } elsif ($ARGV[$i] eq "-u") {
 	$unixtime_timestamp = 1;
 
@@ -155,13 +154,23 @@ while ($i <= $#ARGV) {
 	&usage();
 	exit;
 
-    } elsif ($ARGV[$i] eq "-b") {
+    } elsif ($ARGV[$i] eq "-exclude") {
 	$i++;
-	$begin_time = $ARGV[$i];
+	$exclude = $ARGV[$i];
+
+    } elsif ($ARGV[$i] eq "-s") {
+	$i++;
+	($year, $month, $date, $hour, $min, $sec, $tz) =
+	    split(/[\/ :]+/, $ARGV[$i]);
+	$ustart = &timegm($sec, $min, $hour,
+			  $date, $month - 1, $year);
 
     } elsif ($ARGV[$i] eq "-e") {
 	$i++;
-	$end_time = $ARGV[$i];
+	($year, $month, $date, $hour, $min, $sec, $tz) =
+	    split(/[\/ :]+/, $ARGV[$i]);
+	$uend = &timegm($sec, $min, $hour,
+			$date, $month - 1, $year);
 
     } elsif ($ARGV[$i] eq "-gt") {
 	$i++;
@@ -192,21 +201,6 @@ if ($mode eq "edgesplot") {
     $unixtime_timestamp = 1;
 }
 
-if ($begin_time ne "") {
-# 2007/03/28 00:45:20
-    ($year, $month, $date, $hour,$min,$sec) = split(/[\/ +:]/, $begin_time);
-    $begin_time = &timegm($sec, $min, $hour,
-			  $date, $month - 1, $year);
-#    printf("%s/%s/%s %s:%s:%s\n", $year, $month, $date, $hour, $min, $sec);
-    printf("%s\n", $begin_time);
-}
-if ($end_time ne "") {
-    ($year, $month, $date, $hour, $min, $sec) = split(/[\/ +:]/, $end_time);
-    $end_time = &timegm($sec, $min, $hour,
-			  $date, $month - 1, $year);
-    printf("%s\n", $begin_time);
-}
-#$check = 1;
 #
 # Print analysis parameters
 #
@@ -228,6 +222,9 @@ if ($quiet == 0) {
     }
     printf("#\n");
 }
+
+$num_samples = 0;
+$go = 1;
 #
 # Main loop
 #
@@ -244,22 +241,32 @@ while ($input = <IN>) {
 	$count++;
 
         # TZ is ignored at this moment using timegm()
-#	if ($mode eq "edgesplot" || $mode eq "edgesplain") {
-#	    ;
-#	} els
+	($day, $month, $date, $time, $tz, $year) = split(/ +/, $input);
+	($hour, $min, $sec) = split(/:/, $time);
+	$timestamp = &timegm($sec, $min, $hour,
+			     $date, $month_sym{$month}, $year);
+
+	if ($ustart && ($timestamp < $ustart)) {
+	    $go = 0;
+	    next;
+	} else {
+	    $go = 1;
+	}
+	if ($uend && ($timestamp > $uend)) {
+	    $go = 0;
+	    last;
+	} else {
+	    $go = 1;
+	}
+
 	if ($unixtime_timestamp) {
-	    ($day, $month, $date, $time, $tz, $year) = split(/ +/, $input);
-	    ($hour, $min, $sec) = split(/:/, $time);
-	    $timestamp = &timegm($sec, $min, $hour,
-				 $date, $month_sym{$month}, $year);
+
 	    $timestamp_str = $timestamp;
 	    if ($start_timestamp == 0) {
 		$start_timestamp = $timestamp;
 	    }
 	    $end_timestamp = $timestamp;
-#	    printf("%s\n", $timestamp);
 	} else {
-#	    printf("%s\n", $input);
 	    $timestamp_str = $input;
 	}
         #
@@ -268,6 +275,39 @@ while ($input = <IN>) {
 	    chop($input);
 	    if ($input =~ /^samples /) {
 		if ($header_parsed == 0) {
+		    $appname_base = 0;
+		    $symbol_base = 0;
+		    $c = 0;
+		    @h = split(/[ \t]+/, $input);
+		    for ($i = 0; $i <= $#h; $i++) {
+			printf("h[%d] = '%s'\n", $i, $h[$i]);
+			if ($h[$i] eq "vma") {
+			    $c++;
+			} elsif ($h[$i] eq "samples") {
+			    $samples_offset = $c;
+			    $c++;
+			} elsif ($h[$i] eq "cum.") {
+			    if ($h[$i + 1] eq "samples" || $h[$i + 1] eq "%") {
+				$i++;
+				$c++;
+				next;
+			    } else {
+				printf("Unknown! '%s'\n", $h[$i + 1]);
+				exit;
+			    }
+			} elsif ($h[$i] eq "%") {
+			    $c++;
+			} elsif ($h[$i] eq "image") {
+			    $imagename_offset = $c;
+			    $c++;
+			} elsif ($h[$i] eq "app") {
+			    $appname_base = $c;
+			    $c++;
+			} elsif ($h[$i] eq "symbol") {
+			    $symbol_base = $c;
+			    $c++;
+			}
+#
 		    if ($input =~ /app name/) {
 			$has_appname = 1;
 		    } else {
@@ -283,8 +323,14 @@ while ($input = <IN>) {
 	    }
 	}
 
+    } elsif ($go == 0) {
+	next;
+
     # process sampling data
     } elsif ($input =~ /^[0-9]/) {
+
+	$num_samples++;
+
 	# suppress detailed prototypes of C++ methods
 	if ($input =~ /\(no symbols\)/) {
 	    $input =~ s/\(.+\)/()/;
@@ -302,11 +348,14 @@ while ($input = <IN>) {
 	} else {
 	    $appname = "null";
 	}
-	$symbol = $str[$symbol_offset];
-#print "HOGE: target = " . $target . " / " . $appname . "\n";
+	$symbol = $str[$symbol_base];
+
+	if ($symbol eq $exclude) {
+	    next;
+	}
+
 	if ($target eq "" || $appname eq $target) {
 	    $key = $appname . " / " . $symbol;
-#printf("DEBUG1: %s\n", $key);
 	    if ($count >= 3) {
 		$prev2{$key} = $prev{$key};
 	    } 
@@ -318,7 +367,11 @@ while ($input = <IN>) {
 
     # a record terminator found
     } elsif ($input eq "") {
-# Shinagawa specific
+#
+# In case, NO null line record terminator.
+#	if ($num_samples == 0) {
+#	    next;
+#	}
 	$trash = <IN>;
 
 	# '-M plain' case
@@ -348,17 +401,12 @@ while ($input = <IN>) {
 
 	    foreach(sort {$current{$b} <=> $current{$a}} keys %current) {
 		if ($top_syms != 0 && $num_syms >= $top_syms) {
-#printf("DEBUG7: %s / %s\n", $num_syms,$top_syms);
 		    last;
 		}
-#		if ($_ =~ "signalHandler") {
-#printf("DEBUG4! ");
-#printf("%s %s %s\n", $current{$_}, $prev{$_}, $prev2{$_});
-#		}
+
 		if ((($current{$_} - $prev{$_}) >= 
 		     ($prev{$_} - $prev2{$_}) * $factor) &&
 		    (($current{$_} - $prev{$_}) >= $cutoff)) {
-#printf("DEBUG5!\n");
 		    if ($num_syms == 0 && $mode eq "edgesonly") {
 			printf("%s\n", $timestamp_str);		    
 			printf("%-45s   %7s   %7s   %7s\n",
@@ -373,15 +421,11 @@ while ($input = <IN>) {
 			       $prev{$_} - $prev2{$_});
 		    }
 		    elsif ($mode eq "edgesplot" || $mode eq "edgesplain") {
-## BUG!!!
 			($appname, $slash, $symbol) = split(/[ +]/, $_);
-#printf("DEBUG3: %s '%s'\n", $_, $appname);
-
 			if ($target eq "" || $target eq $appname) {
 			    $top{$_} = $current{$_};
 			}
 		    }
-## DEBUG: really here?
 		    $num_syms++;
 		}
 	    }
@@ -389,10 +433,10 @@ while ($input = <IN>) {
 	if ($mode eq "edgesonly" && $num_syms != 0) {
 	    printf("\n");
 	}
+	$num_samples = 0;
     }
 }
-#printf("HOGE8: %d\n", keys %top);
-#exit;
+#
 close(IN);
 if ($mode eq "edgesonly" || $mode eq "plain") {
     exit;
@@ -403,9 +447,6 @@ if ($mode eq "edgesonly" || $mode eq "plain") {
 #
 if ($quiet == 0) {
 # print summary
-# BUG!!
-#    printf("%-45s   %8s   %8s   %8s\n",
-#	   "#app name / symbol", "current", "diff1", "diff2");
     printf("%-45s   %7s\n",
 	   "#app name / symbol", "diff1");
     $num_syms = 0;
@@ -453,10 +494,9 @@ if ($mode eq "edgesplot") {
     } else {
 	$gp_xtics = 900;
     }
-#printf("DEBUG: gp_xtics = %s / %s %s\n", $gp_xtics, $start_timestamp, $end_timestamp);
-#    $gp_xtics = 600;
+#
     printf(CMD "set xtics %d\n", $gp_xtics);
-
+#
     if ($gp_xtics >= 5 * 3600) {
 	# more than 5 hours, mxtics=1hour
 	$gp_mxtics = $gp_xtics / 3600;
@@ -479,6 +519,7 @@ if ($mode eq "edgesplot") {
     $gp_timefmt = "\"%s\"";
     printf(CMD "set timefmt %s\n", $gp_timefmt);
     printf(CMD "set format y \"10^%%L\"\n");
+    printf(CMD "set format x \"%%m/%%d\\n%%H:%%M\"\n");
     printf(CMD "set logscale y\n");
     $gp_rmargin = 5;
     printf(CMD "set rmargin %d\n", $gp_rmargin);
@@ -490,7 +531,9 @@ if ($mode eq "edgesplot") {
     printf(CMD "set key %s\n", $gp_key);
 }
 #
+$num_samples = 0;
 $count = 0;
+$go = 1;
 while ($input = <IN>) {
 
     chop($input);
@@ -500,11 +543,26 @@ while ($input = <IN>) {
 	next;
 
     } elsif ($input =~ / [0-9][0-9]:[0-9][0-9]:[0-9][0-9] /) {
+
+	($day, $month, $date, $time, $tz, $year) = split(/ +/, $input);
+	($hour, $min, $sec) = split(/:/, $time);
+	$timestamp = &timegm($sec, $min, $hour,
+			     $date, $month_sym{$month}, $year);
+	if ($ustart && ($timestamp < $ustart)) {
+	    $go = 0;
+	    next;
+	} else {
+	    $go = 1;
+	}
+	if ($uend && ($timestamp > $uend)) {
+	    $go = 0;
+	    last;
+	} else {
+	    $go = 1;
+	}
+
 	if ($unixtime_timestamp) {
-	    ($day, $month, $date, $time, $tz, $year) = split(/ +/, $input);
-	    ($hour, $min, $sec) = split(/:/, $time);
-	    $timestamp = &timegm($sec, $min, $hour,
-				    $date, $month_sym{$month}, $year);
+
 	    if ($mode eq "edgesplain") {
 		printf("%s ", $timestamp);
 		printf("\n",); # DEBUG
@@ -516,6 +574,9 @@ while ($input = <IN>) {
 	$count++;
 
     # process sampling data
+    } elsif ($go == 0) { 
+	next;
+
     } elsif ($input =~ /^[0-9]/) {
 
 	if ($input =~ /\(no symbols\)/) {
@@ -536,14 +597,13 @@ while ($input = <IN>) {
 	} else {
 	    $appname = "null";
 	}
+	$symbol = $str[$symbol_base];
+	if ($symbol eq $exclude) {
+	    next;
+	}
 
-	$symbol = $str[$#str];
-#	if ($symbol eq "\(no") {
-#	    $symbol = "(no symbols)";
-#	}
 	if ($target eq "" || $appname eq $target) {
 	    $key = $appname . " / " . $symbol;
-#	    printf("DEBUG2: %s\n", $key);
 	    if ($count >= 3) {
 		$prev2{$key} = $prev{$key};
 	    } 
@@ -552,37 +612,28 @@ while ($input = <IN>) {
 	    }
 	    $current{$key} = $samples;
 	    if ($top_final{$key} ne "") {
-#	    printf("DEBUG: key=%-45s top=%s / %s\n", $key, $top{$key},
-#		   $samples);
 		$work{$key} = $samples;
 	    }
 	}
+	$num_samples++;
 
     } elsif ($input eq "") {
-# Shinagawa specific
-	$trash = <IN>;
+# In case, NO null line record terminator.
+#	$trash = <IN>;
+	if ($num_samples == 0) {
+	    next;
+	}
 	if ($count == 1 && $mode eq "edgesplot") {
 	    $i = 1;
 	    @num_top = keys %top_final;
 	    printf(CMD "plot ");
 	    foreach(sort {$top_final{$b} <=> $top_final{$a}} keys %top_final) {
-#		printf("\nDEBUG: %-45s %7s\n", $_, $top{$_});
-#		$key1 = $_;
-#		$key1 =~ s/vmlinux \/ //;
-## DEBUG
 		($appname, $slash, $symbol) = split(/[ +]/, $_);
 		if ($symbol eq "(no_symbols)") {
 		    $key = $appname;
 		} else {
 		    $key = $symbol;
 		}
-#printf("DEBUG6: '%s' '%s' '%s'\n", $hoge, $key1, $_);
-#		$key1 = $symbol;
-## DEBUG
-#		printf("%s\n", $key1);
-#		printf("%s ", $key1);
-
-#		printf("\"%s\" using 1:%s ti \"%s\" with lines \\ \n", "-", $i + 1, $key1);
 		printf(CMD "\"%s\" using 1:%s ti \"%s\" with lines", $gp_datafile, $i + 1, $key);
 		if ($i <= $#num_top) {
 		    printf(CMD ", ");
@@ -626,15 +677,16 @@ while ($input = <IN>) {
 	    # impossible
 	}
 	%work = ();
+	$num_samples = 0;
     }
 }
 close(IN);
 if ($mode eq "edgesplot") {
     close(CMD);
     close(D);
-printf("Calling gnuplot...\n");
+    printf("Calling gnuplot...\n");
     system("gnuplot " . $gp_cmdfile);
-#    unlink($gp_cmdfile);
-#    unlink($gp_datafile);
+    unlink($gp_cmdfile);
+    unlink($gp_datafile);
 }
 
