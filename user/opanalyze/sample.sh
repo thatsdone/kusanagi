@@ -2,7 +2,7 @@
 #
 # sample.sh is a shell script for collecting oprofile sample data:
 # 
-# Copyright (C) 2007  Masanori ITOH
+# Copyright (C) 2007,2008  Masanori ITOH
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -97,10 +97,16 @@ while /bin/true
 do
         env LANG=C date >> ${FILENAME}
 	opcontrol --dump >> ${FILENAME}
+# opreport 0.9.0
 	opreport -la -p ${KBINARY_PATH} >> ${FILENAME}
-#       if you want to collect kernel information only,
-#       use below instead of above.
+# opreport 0.8.0
+#	opreport -lc -p ${KBINARY_PATH} >> ${FILENAME}
+# if you want to collect kernel information only,
+# use below instead of above.
+# opreport 0.9.0 or later
 #	opreport -la -p ${KBINARY_PATH} ${KDEBUGINFO} >> ${FILENAME}
+# opreport 0.8.0
+#	opreport -lc -p ${KBINARY_PATH} ${KDEBUGINFO} >> ${FILENAME}
 	echo  >> ${FILENAME}
 	c=`expr ${c} \+ 1`
 	if [ ${c} -ge ${COUNT} ]; then
@@ -110,11 +116,3 @@ do
 done
 #
 opcontrol --shutdown
-
-
-
-
-
-
-
-
