@@ -29,7 +29,7 @@
 #   Masanori ITOH  <masanori.itoh@gmail.com>
 #
 # $Id$
-$version = "1.0";
+$version = "3.0";
 use Time::Local;
 #
 %month_sym = (
@@ -118,6 +118,7 @@ while ($i <= $#ARGV) {
     if ($ARGV[$i] eq "-f") {
 	$i++;
 	$filename = $ARGV[$i];
+
     } elsif ($ARGV[$i] eq "-m") {
 	$i++;
 	$top_syms = $ARGV[$i];
@@ -127,9 +128,11 @@ while ($i <= $#ARGV) {
 	if ($ARGV[$i] ne "null") {
 	    $target = $ARGV[$i];
 	}
+
     } elsif ($ARGV[$i] eq "-R") {
 	$i++;
 	$regtarget = $ARGV[$i];
+
     } elsif ($ARGV[$i] eq "-M") {
 	$i++;
 	$mode = $ARGV[$i];
@@ -139,6 +142,7 @@ while ($i <= $#ARGV) {
 	    &usage();
 	    exit;
 	}
+
     } elsif ($ARGV[$i] eq "-C") {
 	$i++;
 	$cutoff = $ARGV[$i];
@@ -186,6 +190,7 @@ while ($i <= $#ARGV) {
 
     } elsif ($ARGV[$i] eq "-q") {
 	$quiet = 1;
+
     }
     $i++;
 }
@@ -236,8 +241,7 @@ while ($input = <IN>) {
 	# ignore
 	next;
 
-    } elsif ($input =~ / [0-9][0-9]:[0-9][0-9]:[0-9][0-9] /) {
-
+    } elsif ($input =~ /[0-9][0-9]:[0-9][0-9]:[0-9][0-9]/) {
 	$count++;
 
         # TZ is ignored at this moment using timegm()
@@ -258,7 +262,6 @@ while ($input = <IN>) {
 	} else {
 	    $go = 1;
 	}
-
 	if ($unixtime_timestamp) {
 
 	    $timestamp_str = $timestamp;
@@ -280,7 +283,6 @@ while ($input = <IN>) {
 		    $c = 0;
 		    @h = split(/[ \t]+/, $input);
 		    for ($i = 0; $i <= $#h; $i++) {
-			printf("h[%d] = '%s'\n", $i, $h[$i]);
 			if ($h[$i] eq "vma") {
 			    $c++;
 			} elsif ($h[$i] eq "samples") {
@@ -307,7 +309,7 @@ while ($input = <IN>) {
 			    $symbol_base = $c;
 			    $c++;
 			}
-#
+		    }
 		    if ($input =~ /app name/) {
 			$has_appname = 1;
 		    } else {
@@ -367,12 +369,9 @@ while ($input = <IN>) {
 
     # a record terminator found
     } elsif ($input eq "") {
-#
-# In case, NO null line record terminator.
-#	if ($num_samples == 0) {
-#	    next;
-#	}
-	$trash = <IN>;
+	if ($num_samples == 0) {
+	    next;
+	}
 
 	# '-M plain' case
 	if ($mode eq "plain") {
@@ -394,16 +393,15 @@ while ($input = <IN>) {
 		       $prev2{$_});
 		$num_syms++;
 	    }
+	    printf("\n");
 
         # '-M edges*' case
 	} elsif ($mode =~ /^edges/) {
 	    $num_syms = 0;
-
 	    foreach(sort {$current{$b} <=> $current{$a}} keys %current) {
 		if ($top_syms != 0 && $num_syms >= $top_syms) {
 		    last;
 		}
-
 		if ((($current{$_} - $prev{$_}) >= 
 		     ($prev{$_} - $prev2{$_}) * $factor) &&
 		    (($current{$_} - $prev{$_}) >= $cutoff)) {
@@ -587,13 +585,11 @@ while ($input = <IN>) {
 	    $input =~ s/\(.+\)/()/;
 	    @str = split(/[ \t]+/, $input);
 	}
-#	@str = split(/[ \t]+/, $input);
 	$samples = $str[$samples_offset];
 
 	$symbol_offset = $symbol_base + $samples_offset;
 	if ($has_appname) {
 	    $appname = $str[$appname_base + $samples_offset];
-#	    $appname = $str[$#str - 1];
 	} else {
 	    $appname = "null";
 	}
@@ -618,8 +614,6 @@ while ($input = <IN>) {
 	$num_samples++;
 
     } elsif ($input eq "") {
-# In case, NO null line record terminator.
-#	$trash = <IN>;
 	if ($num_samples == 0) {
 	    next;
 	}
@@ -634,7 +628,8 @@ while ($input = <IN>) {
 		} else {
 		    $key = $symbol;
 		}
-		printf(CMD "\"%s\" using 1:%s ti \"%s\" with lines", $gp_datafile, $i + 1, $key);
+		printf(CMD "\"%s\" using 1:%s ti \"%s\" with lines",
+			 $gp_datafile, $i + 1, $key);
 		if ($i <= $#num_top) {
 		    printf(CMD ", ");
 		}
@@ -658,13 +653,11 @@ while ($input = <IN>) {
 	    }
 	    printf(D "\n");
 	} elsif ($mode eq "edgesplain") {
-# edgesplain
-# $top{} contains current diff.
+	    # $top{} contains current diff.
+	    # $work{} contains total samples, not differences
 	    foreach(sort {$top_final{$b} <=> $top_final{$a}} keys %top_final) {
 		if ($top_final{$_} ne "") {
 		    if ($work{$_} ne "") {
-#			printf("'%-45s' %s %s\n", $_, $top{$_}, $work{$_});
-# $work{} contains total samples, not differences
 			printf("'%-45s' %10s\n", $_, $work{$_});
 		    } else {
 			printf("'%-45s' %10s\n", $_, "0");
@@ -672,7 +665,6 @@ while ($input = <IN>) {
 		}
 	    }
 	    printf("\n");
-# edgesplain
 	} else {
 	    # impossible
 	}
