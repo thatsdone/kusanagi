@@ -30,6 +30,9 @@
 #define FLAG_VERBOSE   0x01
 #define FLAG_RAWOUTPUT 0x02
 #define IS_VERBOSE(f) (f & FLAG_VERBOSE)
+#define IS_RAWOUTPUT(f) (f & FLAG_RAWOUTPUT)
+#define PROGNAME "vigstat"
+#define VERSION "0.2"
 
 struct vig_data {
 	VMGuestLibHandle handle;
@@ -52,17 +55,11 @@ struct vig_data {
 	uint32 sharedmb;          /* VMGuestLib_GetMemSharedMB */
 	uint32 sharedsavedmb;     /* VMGuestLib_GetMemSharedSavedMB */
 	uint32 usedmb;            /* VMGuestLib_GetMemUsedMB */
-#if 0	
-	size_t bufferSize;        /* VMGuestLib_GetResourcePoolPath */
-	char pathBuffer[BUFSIZE];
+#ifdef RESPOOLPATH
+	size_t bufsize;           /* VMGuestLib_GetResourcePoolPath */
+	char   pathbuf[BUFSIZE];
 #endif
 };
-
-void usage()
-{
-	printf("Not Yet Implemented!\n");
-	return;
-}
 
 int sample(struct vig_data *pvig, unsigned int flag)
 {
@@ -237,35 +234,58 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		}
 		return 1;
 	}
-	/*
-	  VMGuestLib_GetResourcePoolPath
-	*/
+#ifdef RESPOOLPATH
+	pvig->bufsize = BUFSIZE;
+	ret = VMGuestLib_GetResourcePoolPath(pvig->handle,
+					     &pvig->bufsize,
+					     pvig->pathbuf);
+	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
+		if (IS_VERBOSE(flag)) {
+			printf("VMGuestLib_GetResourcePoolPath: %d (%s)\n",
+			       ret, VMGuestLib_GetErrorText(ret));
+		}
+		return 1;
+	}
+#endif
 	return 0;
 }
 
 
 void output(struct vig_data *now, struct vig_data *prev, unsigned int flag)
 {
+	long long ms_now, ms_prev;
+
+	ms_now  = (long long)now->ts.tv_sec * 1000000
+		+ (long long)now->ts.tv_usec;
+	ms_prev = (long long)prev->ts.tv_sec * 1000000
+		+ (long long)prev->ts.tv_usec;
+	
 	printf("%ld ", now->ts.tv_sec);
-	if (flag & FLAG_RAWOUTPUT) {
+	if (IS_RAWOUTPUT(flag)) {
 		printf("%llu ", now->id);
-		printf("%u ", now->hostmhz);
-		printf("%u ", now->reservemhz);
-		printf("%u ", now->limitmhz);
-		printf("%u ", now->cpushares);
-		printf("%llu ", now->elapsedms);
-		printf("%llu ", now->usedms);
-		printf("%u ", now->reservemb);
-		printf("%u ", now->limitmb);
+		printf("%u ", now->hostmhz);       /* MHz */
+		printf("%u ", now->reservemhz);    /* MHz */
+		printf("%u ", now->limitmhz);      /* MHz */
+		printf("%u ", now->cpushares);  
+		printf("%llu ", now->elapsedms);   /* ms */
+		printf("%llu ", now->usedms);      /* ms */
+		printf("%u ", now->reservemb);     /* MB */
+		printf("%u ", now->limitmb);       /* MB */
 		printf("%u ", now->memshares);
-		printf("%u ", now->mappedsize);
-		printf("%u ", now->active);
-		printf("%u ", now->overhead);
-		printf("%u ", now->ballooned);
-		printf("%u ", now->swapped);
-		printf("%u ", now->sharedmb);
-		printf("%u ", now->sharedsavedmb);
-		printf("%u", now->usedmb);
+		printf("%u ", now->mappedsize);    /* MB */
+		printf("%u ", now->active);        /* MB */
+		printf("%u ", now->overhead);      /* MB */
+		printf("%u ", now->ballooned);     /* MB */
+		printf("%u ", now->swapped);       /* MB */
+		printf("%u ", now->sharedmb);      /* MB */
+		printf("%u ", now->sharedsavedmb); /* MB */
+		printf("%u ", now->usedmb);        /* MB */
+		printf("%lld", (ms_now - ms_prev) / 1000); /* guest clock */
+		printf("%6.2f ",
+		       (double)100 * (now->usedms - prev->usedms) / 
+		       (double)(now->elapsedms - prev->elapsedms));
+			/* cpu usage rate */
+		
 	} else {
 		if (prev == NULL) {
 			printf("BUG: prev is NULL for non-raw mode!\n");
@@ -275,6 +295,19 @@ void output(struct vig_data *now, struct vig_data *prev, unsigned int flag)
 		printf("%llu ", now->usedms - prev->usedms);
 	}
 	printf("\n");
+	return;
+}
+
+void usage()
+{
+	printf("%s: %s\n", PROGNAME, VERSION);
+	printf("    Collect statistical information from VMKernel\n");
+	printf("    Options:\n");
+	printf("      -i INTERVAL : Interval to sample (seconds)\n");
+	printf("      -c COUNT    : Count to sample\n");
+	printf("      -h          : Show help message\n");
+	printf("      -r          : Raw output\n");
+	printf("      -v          : Verbose mode\n");
 	return;
 }
 
@@ -298,13 +331,14 @@ int main (int argc, char **argv)
 			
 		case 'h':
 			usage();
-			exit(0);
+			return 0;
 			break;
+			
 		case 'r': /* raw output */
 			flag |= FLAG_RAWOUTPUT;
 			break;
 			
-		case 'v':
+		case 'v': /* verbose mode */
 			flag |= FLAG_VERBOSE;
 			break;
 			
@@ -314,7 +348,6 @@ int main (int argc, char **argv)
 	}
 
 	memset(&vig_now, 0x0, sizeof(struct vig_data));
-	memset(&vig_prev, 0x0, sizeof(struct vig_data));
 	
 	ret = VMGuestLib_OpenHandle(&vig_now.handle);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
@@ -328,7 +361,7 @@ int main (int argc, char **argv)
 	if (sample(&vig_now, flag) != 0) {
 		goto bailout;
 	}
-	if (flag & FLAG_RAWOUTPUT) {
+	if (IS_RAWOUTPUT(flag)) {
 		output(&vig_now, NULL, flag);
 	}
 	
@@ -352,129 +385,3 @@ bailout:
 	}
 	return 0;
 }
-    
-
-/*
-shayol5:/cygdrive/c/tmp/VIRTUALIZATION/media/vi-guest-sdk[312] grep ^VMGuestLibE
-rror GuestSDK/vmGuestLib.h -A 1
-VMGuestLibError VMGuestLib_OpenHandle(VMGuestLibHandle *handle);
-VMGuestLibError VMGuestLib_CloseHandle(VMGuestLibHandle handle);
---
-VMGuestLibError VMGuestLib_UpdateInfo(VMGuestLibHandle handle);
---
-VMGuestLibError VMGuestLib_GetSessionId(VMGuestLibHandle handle,
-                                        VMSessionId *id);       
---
-VMGuestLibError VMGuestLib_GetCpuReservationMHz(VMGuestLibHandle handle,
-                                                uint32 *cpuReservationMHz);
---
-VMGuestLibError VMGuestLib_GetCpuLimitMHz(VMGuestLibHandle handle,
-                                          uint32 *cpuLimitMHz);
---
-VMGuestLibError VMGuestLib_GetCpuShares(VMGuestLibHandle handle,
-                                        uint32 *cpuShares);     
---
-VMGuestLibError VMGuestLib_GetCpuUsedMs(VMGuestLibHandle handle,
-                                        uint64 *cpuUsedMs);     
---
-VMGuestLibError VMGuestLib_GetHostProcessorSpeed(VMGuestLibHandle handle,
-                                                 uint32 *mhz);           
---
-VMGuestLibError VMGuestLib_GetMemReservationMB(VMGuestLibHandle handle,  
-                                               uint32 *memReservationMB);
---
-VMGuestLibError VMGuestLib_GetMemLimitMB(VMGuestLibHandle handle,
-                                         uint32 *memLimitMB);    
---
-VMGuestLibError VMGuestLib_GetMemShares(VMGuestLibHandle handle, 
-                                        uint32 *memShares);      
---
-VMGuestLibError VMGuestLib_GetMemMappedMB(VMGuestLibHandle handle, 
-                                          uint32 *memMappedSizeMB); 
---
-VMGuestLibError VMGuestLib_GetMemActiveMB(VMGuestLibHandle handle, 
-                                          uint32 *memActiveMB);    
---
-VMGuestLibError VMGuestLib_GetMemOverheadMB(VMGuestLibHandle handle, 
-                                            uint32 *memOverheadMB);  
---
-VMGuestLibError VMGuestLib_GetMemBalloonedMB(VMGuestLibHandle handle,
-                                             uint32 *memBalloonedMB);
---
-VMGuestLibError VMGuestLib_GetMemSwappedMB(VMGuestLibHandle handle, 
-                                           uint32 *memSwappedMB);   
---
-VMGuestLibError VMGuestLib_GetMemSharedMB(VMGuestLibHandle handle, 
-                                          uint32 *memSharedMB);    
---
-VMGuestLibError VMGuestLib_GetMemSharedSavedMB(VMGuestLibHandle handle, 
-                                               uint32 *memSharedSavedMB); 
---
-VMGuestLibError VMGuestLib_GetMemUsedMB(VMGuestLibHandle handle, // IN
-                                        uint32 *memUsedMB);      // OUT
---
-VMGuestLibError VMGuestLib_GetElapsedMs(VMGuestLibHandle handle, // IN
-                                        uint64 *elapsedMs);      // OUT
---
-VMGuestLibError VMGuestLib_GetResourcePoolPath(VMGuestLibHandle handle,
-                                               size_t *bufferSize,     
-shayol5:/cygdrive/c/tmp/VIRTUALIZATION/media/vi-guest-sdk[313]
-
-
-
-
-shayol5:/cygdrive/c/tmp/VIRTUALIZATION/media/vi-guest-sdk[312] grep ^VMGuestLibE
-rror GuestSDK/vmGuestLib.h -A 1
-VMGuestLib_OpenHandle(VMGuestLibHandle *handle);
-VMGuestLib_CloseHandle(VMGuestLibHandle handle);
-VMGuestLib_UpdateInfo(VMGuestLibHandle handle);
-VMGuestLib_GetSessionId(VMSessionId *id);
-
-VMGuestLib_GetCpuReservationMHz(uint32 *cpuReservationMHz);
-VMGuestLib_GetCpuLimitMHz(uint32 *cpuLimitMHz);
-VMGuestLib_GetCpuShares(uint32 *cpuShares);     
-VMGuestLib_GetCpuUsedMs(uint64 *cpuUsedMs);     
-VMGuestLib_GetHostProcessorSpeed(uint32 *mhz);           
-VMGuestLib_GetMemReservationMB(uint32 *memReservationMB);
-VMGuestLib_GetMemLimitMB(uint32 *memLimitMB);    
-VMGuestLib_GetMemShares(uint32 *memShares);      
-VMGuestLib_GetMemMappedMB(uint32 *memMappedSizeMB); 
-VMGuestLib_GetMemActiveMB(uint32 *memActiveMB);    
-VMGuestLib_GetMemOverheadMB(uint32 *memOverheadMB);  
-VMGuestLib_GetMemBalloonedMB(uint32 *memBalloonedMB);
-VMGuestLib_GetMemSwappedMB(uint32 *memSwappedMB);   
-VMGuestLib_GetMemSharedMB(uint32 *memSharedMB);    
-VMGuestLib_GetMemSharedSavedMB(uint32 *memSharedSavedMB); 
-VMGuestLib_GetMemUsedMB(uint32 *memUsedMB);     
-VMGuestLib_GetElapsedMs(uint64 *elapsedMs);     
-VMGuestLib_GetResourcePoolPath(size_t *bufferSize, char *pathBuffer);
-
-
-
-	ret = VMGuestLib_UpdateInfo(handle);
-	if (verbose)
-		printf("VMGuestLib_Updateinfo returns %d\n", ret);
-	
-	ret = VMGuestLib_GetHostProcessorSpeed(handle, &hostmhz);
-	if (verbose)
-		printf("VMGuestLib_GetHostProcessorSpeed returns %d %u\n",
-		       ret, hostmhz);
-
-	ret = VMGuestLib_GetElapsedMs(handle, &elapsed);
-	if (verbose)
-		printf("VMGuestLib_GetElapsedMs returns %d %llu\n",
-		       ret, elapsed);
-	ret = VMGuestLib_GetCpuUsedMs(handle, &used);
-	if (verbose)
-		printf("VMGuestLib_GetCpuUsedMs returns %d %llu\n",
-		       ret, used);
-	
-
- */
-
-
-
-
-
-    
-

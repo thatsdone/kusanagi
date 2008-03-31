@@ -1,10 +1,16 @@
 #
 # $Id$
 #
+INCPATH=../vi-guest-sdk/GuestSDK
+LIBPATH=../vi-guest-sdk/GuestSDK/lib/lib32
+COPT=-g -Wall -DRESPOOLPATH
+LOPT=-lvmGuestLib
 all:
-	gcc -Wall -g vigstat.c -I ../vi-guest-sdk/GuestSDK -o vigstat.o -c 
+	gcc $(COPT) -c -I $(INCPATH) vigstat.c
 
-#	gcc -Wall -g vigstat.c -I ./GuestSDK -L./GuestSDK/lib/lib32 -lvmGuestLib -o vigstat
+#	gcc $(COPT) -I $(INCPATH) -L$(LIBPATH) $(LOPT) -o vigstat vigstat.c 
+clean:
+	/bin/rm -f *~ *.o 
 
 
 
