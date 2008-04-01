@@ -1,5 +1,5 @@
 /*
- * vigstat.c is a simple resource monitoring program for guest OSes on VMWare:
+ * vgstat.c is a simple statistics collector for guest OSes on VMWare:
  *
  * Copyright (C) 2008  Masanori ITOH <masanori.itoh_at_gmail.com>
  *
@@ -29,12 +29,14 @@
 #define BUFSIZE 256
 #define FLAG_VERBOSE   0x01
 #define FLAG_RAWOUTPUT 0x02
+#define FLAG_UNIXTIME  0x04
+
 #define IS_VERBOSE(f) (f & FLAG_VERBOSE)
 #define IS_RAWOUTPUT(f) (f & FLAG_RAWOUTPUT)
-#define PROGNAME "vigstat"
-#define VERSION "0.2"
+#define PROGNAME "vgstat"
+#define VERSION "0.3"
 
-struct vig_data {
+struct vg_data {
 	VMGuestLibHandle handle;
 	struct timeval ts;
 	VMSessionId id;           /* VMGuestLib_GetSessionId */
@@ -61,14 +63,14 @@ struct vig_data {
 #endif
 };
 
-int sample(struct vig_data *pvig, unsigned int flag)
+int sample(struct vg_data *pvg, unsigned int flag)
 {
 	int rc;
 	VMGuestLibError ret;
 	
-	rc = gettimeofday(&pvig->ts, NULL);
+	rc = gettimeofday(&pvg->ts, NULL);
 	
-	ret = VMGuestLib_UpdateInfo(pvig->handle);
+	ret = VMGuestLib_UpdateInfo(pvg->handle);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_Updateinfo: %d (%s)\n",
@@ -77,7 +79,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetSessionId(pvig->handle, &pvig->id);
+	ret = VMGuestLib_GetSessionId(pvg->handle, &pvg->id);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetSessionId: %d (%s)\n",
@@ -86,7 +88,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 
-	ret = VMGuestLib_GetHostProcessorSpeed(pvig->handle, &pvig->hostmhz);
+	ret = VMGuestLib_GetHostProcessorSpeed(pvg->handle, &pvg->hostmhz);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetHostProcessorSpeed: %d (%s)\n",
@@ -95,7 +97,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetCpuReservationMHz(pvig->handle, &pvig->reservemhz);
+	ret = VMGuestLib_GetCpuReservationMHz(pvg->handle, &pvg->reservemhz);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetCpuReservationMHz: %d (%s)\n",
@@ -104,7 +106,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 
-	ret = VMGuestLib_GetCpuLimitMHz(pvig->handle, &pvig->limitmhz);
+	ret = VMGuestLib_GetCpuLimitMHz(pvg->handle, &pvg->limitmhz);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetCpuLimitMHz: %d (%s)\n",
@@ -113,7 +115,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 
-	ret = VMGuestLib_GetCpuShares(pvig->handle, &pvig->cpushares);
+	ret = VMGuestLib_GetCpuShares(pvg->handle, &pvg->cpushares);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetCpuShares: %d (%s)\n",
@@ -122,7 +124,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetElapsedMs(pvig->handle, &pvig->elapsedms);
+	ret = VMGuestLib_GetElapsedMs(pvg->handle, &pvg->elapsedms);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetElapsedMs: %d (%s)\n",
@@ -131,7 +133,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetCpuUsedMs(pvig->handle, &pvig->usedms);
+	ret = VMGuestLib_GetCpuUsedMs(pvg->handle, &pvg->usedms);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetCpuUsedMs: %d (%s)\n",
@@ -140,7 +142,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 
-	ret = VMGuestLib_GetMemReservationMB(pvig->handle, &pvig->reservemb);
+	ret = VMGuestLib_GetMemReservationMB(pvg->handle, &pvg->reservemb);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemReservationMB: %d (%s)\n",
@@ -149,7 +151,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetMemLimitMB(pvig->handle, &pvig->limitmb);
+	ret = VMGuestLib_GetMemLimitMB(pvg->handle, &pvg->limitmb);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemLimitMB: %d (%s)\n",
@@ -158,7 +160,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetMemShares(pvig->handle, &pvig->memshares);
+	ret = VMGuestLib_GetMemShares(pvg->handle, &pvg->memshares);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemShares: %d (%s)\n",
@@ -167,7 +169,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 
-	ret = VMGuestLib_GetMemMappedMB(pvig->handle, &pvig->mappedsize);
+	ret = VMGuestLib_GetMemMappedMB(pvg->handle, &pvg->mappedsize);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemMappedMB: %d (%s)\n",
@@ -176,7 +178,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetMemActiveMB(pvig->handle, &pvig->active);
+	ret = VMGuestLib_GetMemActiveMB(pvg->handle, &pvg->active);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemActiveMB: %d (%s)\n",
@@ -184,7 +186,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		}
 		return 1;
 	}
-	ret = VMGuestLib_GetMemOverheadMB(pvig->handle, &pvig->overhead);
+	ret = VMGuestLib_GetMemOverheadMB(pvg->handle, &pvg->overhead);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemOverheadMB: %d (%s)\n",
@@ -193,7 +195,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 	
-	ret = VMGuestLib_GetMemBalloonedMB(pvig->handle, &pvig->ballooned);
+	ret = VMGuestLib_GetMemBalloonedMB(pvg->handle, &pvg->ballooned);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemBalloonedMB: %d (%s)\n",
@@ -201,7 +203,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		}
 		return 1;
 	}
-	ret = VMGuestLib_GetMemSwappedMB(pvig->handle, &pvig->swapped);
+	ret = VMGuestLib_GetMemSwappedMB(pvg->handle, &pvg->swapped);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemSwappedMB: %d (%s)\n",
@@ -209,7 +211,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		}
 		return 1;
 	}
-	ret = VMGuestLib_GetMemSharedMB(pvig->handle, &pvig->sharedmb);
+	ret = VMGuestLib_GetMemSharedMB(pvg->handle, &pvg->sharedmb);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemSharedMB: %d (%s)\n",
@@ -217,8 +219,8 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		}
 		return 1;
 	}
-	ret = VMGuestLib_GetMemSharedSavedMB(pvig->handle,
-					     &pvig->sharedsavedmb);
+	ret = VMGuestLib_GetMemSharedSavedMB(pvg->handle,
+					     &pvg->sharedsavedmb);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemSharedSavedMB: %d (%s)\n",
@@ -226,7 +228,7 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		}
 		return 1;
 	}
-	ret = VMGuestLib_GetMemUsedMB(pvig->handle, &pvig->usedmb);
+	ret = VMGuestLib_GetMemUsedMB(pvg->handle, &pvg->usedmb);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetMemUsedMB: %d (%s)\n",
@@ -235,10 +237,10 @@ int sample(struct vig_data *pvig, unsigned int flag)
 		return 1;
 	}
 #ifdef RESPOOLPATH
-	pvig->bufsize = BUFSIZE;
-	ret = VMGuestLib_GetResourcePoolPath(pvig->handle,
-					     &pvig->bufsize,
-					     pvig->pathbuf);
+	pvg->bufsize = BUFSIZE;
+	ret = VMGuestLib_GetResourcePoolPath(pvg->handle,
+					     &pvg->bufsize,
+					     pvg->pathbuf);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetResourcePoolPath: %d (%s)\n",
@@ -251,10 +253,14 @@ int sample(struct vig_data *pvig, unsigned int flag)
 }
 
 
-void output(struct vig_data *now, struct vig_data *prev, unsigned int flag)
+void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 {
 	long long ms_now, ms_prev;
 
+	if (now == NULL) {
+		printf("output: BUG: now is NULL!n");
+		exit(1);
+	}
 	ms_now  = (long long)now->ts.tv_sec * 1000000
 		+ (long long)now->ts.tv_usec;
 	ms_prev = (long long)prev->ts.tv_sec * 1000000
@@ -288,11 +294,15 @@ void output(struct vig_data *now, struct vig_data *prev, unsigned int flag)
 		
 	} else {
 		if (prev == NULL) {
-			printf("BUG: prev is NULL for non-raw mode!\n");
+			printf("output: BUG: prev is NULL for non-raw mode!\n");
 			exit(1);
 		}
 		printf("%llu ", now->elapsedms - prev->elapsedms);
 		printf("%llu ", now->usedms - prev->usedms);
+		printf("%6.2f ",
+		       (double)100 * (now->usedms - prev->usedms) / 
+		       (double)(now->elapsedms - prev->elapsedms));
+			/* cpu usage rate */
 	}
 	printf("\n");
 	return;
@@ -316,7 +326,7 @@ int main (int argc, char **argv)
 	char c;
 	unsigned int flag = 0;
 	int interval = 1, count = 0, max_count = 1;
-	struct vig_data vig_now, vig_prev;
+	struct vg_data vg_now, vg_prev;
 	VMGuestLibError ret;
 
 	while ((c = getopt(argc, argv, "i:c:hvr")) != -1) {
@@ -342,14 +352,18 @@ int main (int argc, char **argv)
 			flag |= FLAG_VERBOSE;
 			break;
 			
+		case 'c':
+			flag |= FLAG_UNIXTIME;
+			break;
+			
 		default:
 			printf("Unkown option '%c'\n", c);
 		}
 	}
 
-	memset(&vig_now, 0x0, sizeof(struct vig_data));
+	memset(&vg_now, 0x0, sizeof(struct vg_data));
 	
-	ret = VMGuestLib_OpenHandle(&vig_now.handle);
+	ret = VMGuestLib_OpenHandle(&vg_now.handle);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_OpenHandle: %d (%s)\n",
@@ -358,24 +372,25 @@ int main (int argc, char **argv)
 		return 1;
 	}
 	
-	if (sample(&vig_now, flag) != 0) {
+	if (sample(&vg_now, flag) != 0) {
 		goto bailout;
 	}
+#if 0
 	if (IS_RAWOUTPUT(flag)) {
-		output(&vig_now, NULL, flag);
+		output(&vg_now, NULL, flag);
 	}
-	
+#endif
 	for (count = 0; count < max_count; count++) {
-		vig_prev = vig_now;
+		vg_prev = vg_now;
 		sleep(interval);
-		if (sample(&vig_now, flag) != 0) {
+		if (sample(&vg_now, flag) != 0) {
 			goto bailout;
 		}
-		output(&vig_now, &vig_prev, flag);
+		output(&vg_now, &vg_prev, flag);
 	}
 	
 bailout:	
-	ret = VMGuestLib_CloseHandle(vig_now.handle);
+	ret = VMGuestLib_CloseHandle(vg_now.handle);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_CloseHandle: %d (%s)\n",
