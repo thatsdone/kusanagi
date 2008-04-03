@@ -1,17 +1,15 @@
 #
 # $Id$
 #
-INCPATH=../vmguest-sdk/GuestSDK
-LIBPATH=../vmguest-sdk/GuestSDK/lib/lib32
-COPT=-g -Wall -DRESPOOLPATH
-LOPT=-lvmGuestLib
+#
+SDKPATH=/usr/lib/vmware-tools/GuestSDK
+INCPATH=$(SDKPATH)
+LIBPATH=$(SDKPATH)/lib/lib64
+#
+COPT=-g -Wall -I $(INCPATH) -DRESPOOLPATH
+LOPT=-lvmGuestLib -L $(LIBPATH)
 all:
-	gcc $(COPT) -c -I $(INCPATH) vgstat.c
+	gcc $(COPT) $(LOPT) -o vgstat vgstat.c 
 
-#	gcc $(COPT) -I $(INCPATH) -L $(LIBPATH) $(LOPT) -o vgstat vgstat.c 
 clean:
 	/bin/rm -f *~ *.o 
-
-
-
-
