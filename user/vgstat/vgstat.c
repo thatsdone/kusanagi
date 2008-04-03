@@ -352,7 +352,7 @@ int main (int argc, char **argv)
 			flag |= FLAG_VERBOSE;
 			break;
 			
-		case 'c':
+		case 'u':
 			flag |= FLAG_UNIXTIME;
 			break;
 			
