@@ -286,8 +286,8 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 		printf("%u ", now->sharedmb);      /* MB */
 		printf("%u ", now->sharedsavedmb); /* MB */
 		printf("%u ", now->usedmb);        /* MB */
-		printf("%lld", (ms_now - ms_prev) / 1000); /* guest clock */
-		printf("%6.2f ",
+		printf("%lld ", (ms_now - ms_prev) / 1000); /* guest clock */
+		printf("%6.2f",
 		       (double)100 * (now->usedms - prev->usedms) / 
 		       (double)(now->elapsedms - prev->elapsedms));
 			/* cpu usage rate */

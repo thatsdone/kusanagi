@@ -12,4 +12,4 @@ all:
 	gcc $(COPT) $(LOPT) -o vgstat vgstat.c 
 
 clean:
-	/bin/rm -f *~ *.o 
+	/bin/rm -f *~ *.o vgstat
