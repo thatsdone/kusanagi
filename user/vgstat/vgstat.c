@@ -297,9 +297,10 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 			printf("output: BUG: prev is NULL for non-raw mode!\n");
 			exit(1);
 		}
+		printf("%lld ", (ms_now - ms_prev) / 1000); /* guest clock */
 		printf("%llu ", now->elapsedms - prev->elapsedms);
 		printf("%llu ", now->usedms - prev->usedms);
-		printf("%6.2f ",
+		printf("%6.2f",
 		       (double)100 * (now->usedms - prev->usedms) / 
 		       (double)(now->elapsedms - prev->elapsedms));
 			/* cpu usage rate */
