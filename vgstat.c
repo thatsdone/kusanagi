@@ -34,7 +34,7 @@
 #define IS_VERBOSE(f) (f & FLAG_VERBOSE)
 #define IS_RAWOUTPUT(f) (f & FLAG_RAWOUTPUT)
 #define PROGNAME "vgstat"
-#define VERSION "0.3"
+#define VERSION "0.5"
 
 struct vg_data {
 	VMGuestLibHandle handle;
@@ -318,6 +318,7 @@ void usage()
 	printf("      -c COUNT    : Count to sample\n");
 	printf("      -h          : Show help message\n");
 	printf("      -r          : Raw output\n");
+	printf("      -u          : Unix time format\n");
 	printf("      -v          : Verbose mode\n");
 	return;
 }
@@ -376,11 +377,7 @@ int main (int argc, char **argv)
 	if (sample(&vg_now, flag) != 0) {
 		goto bailout;
 	}
-#if 0
-	if (IS_RAWOUTPUT(flag)) {
-		output(&vg_now, NULL, flag);
-	}
-#endif
+
 	for (count = 0; count < max_count; count++) {
 		vg_prev = vg_now;
 		sleep(interval);

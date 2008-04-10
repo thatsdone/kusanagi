@@ -21,7 +21,7 @@ DESCRIPTION
 
     Here is an example of raw mode output.
 
-    | # vgstat -i 5 -c 3 -r
+    | # vgstat -i 5 -c 3 -r -u
     | 1207206685 15178136555125225123 3000 2775 4294967295 2000 522709486 \
     |          99277134 0 2080768 30840 3070 123 346 0 0 13 7 3063 5002  13.75 
     | 1207206690 15178136555125225123 3000 2775 4294967295 2000 522714460 \
@@ -50,7 +50,7 @@ DESCRIPTION
         VMGuestLib_GetMemSharedSavedMB()
         VMGuestLib_GetMemUsedMB()
     The last two columns are:
-        milliseconds since the last sample by gettimeofday()
+        milliseconds since the last sampling by gettimeofday()
 	% Used calculated like the following.
 
         Here, elapse(now) and elapse(prev) are values derived
@@ -59,25 +59,27 @@ DESCRIPTION
 	
 	% Used = 100 * (used(now) - used(prev)) / (elapse(prev) - elapse(now))
 
+	The above '% Used' is the same as the %USED derived by esxtop, or
+	'used' derived by VI SDK.
+	If the VM guest has 4 VCPUs, the value can be up to 400%.
 
     An example of standard mode output is below.
 
-    | # vgstat -i 5 -c 1
+    | # vgstat -i 5 -c 1 -u
     | 1207206685 5002 4974 710  14.27
 
-    The second and the fifth column are the same as raw output mode.
+    The second and the fifth columns are the same as raw output mode.
     In the above example, the second column, 5002 means 5002(ms)
     between successive two samples via gettimeofday().
     
-    The third and fourth colums are elapse(prev) - elapse(now) and
-    used(prev) - used(now) above.
-
+    The third and fourth columns are elapse(prev) - elapse(now) and
+    used(prev) - used(now).
 
 PREREQUISITE
     1) The guest OS must run on VMware ESX Server, not VMware Workstation.
     2) You have to install and enable VMware Tools.
     3) If you want to compile vgstat on a native Linux environment,
-       you have to download VMware Guest SDK from VMware. [1]
+       you have to download VMware Guest SDK from VMware web site. [1]
 
 INSTALLATION
         
@@ -108,8 +110,9 @@ LICENSE
   Copyright (C) 2008 Masanori ITOH <masanori.itoh@gmail.com>
 
 HISTORY
-  April  5, 2008 v0.4 Bub fix, and README.txt added.
-  April  1, 2008 v0.3 Bug fix
+  April 10, 2008 v0.5 Corrected a typo, and README.txt corrections.
+  April  5, 2008 v0.4 Bug fixes, and README.txt added.
+  April  1, 2008 v0.3 Bug fixes
   March 31, 2008 v0.2 Beta release
 
 REFERENCES
