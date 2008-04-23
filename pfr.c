@@ -17,6 +17,12 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
+ * Note:
+ *   - A typical use case is sampling files under /proc or /sys periodically.
+ *   - pfr tries to read content of the input file by only one read().
+ *     If you see messages saying"# Warning! Need more than 2 read()s.",
+ *     try to increase size of the read buffer using -b option.
+ * 
  * $Id$
  */
 #include <stdio.h>
@@ -27,17 +33,33 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #define BUFSIZE 4096
+#define PROGNAME "pfr"
+#define VERSION "1.0"
 
+void usage(void) 
+{
+	printf("%s: %s\n", PROGNAME, VERSION);
+	printf("    Record content of a file periodically with timestamps.\n");
+	printf("    Options:\n");
+	printf("      -f INPUT     : Input filename.\n");
+	printf("      -i OUTPUT    : Output filename. (default: STDOUT)\n");
+	printf("      -c COUNT     : Count to record.\n");
+	printf("      -i INTERVAL  : Interval to record.\n");
+	printf("      -b BUFSIZE   : Buffer size for the input file(bytes).\n");
+	printf("      -d           : Debug mode.\n");
+}
+	
 int main(int argc, char **argv)
 {
-	int fd, ret, count = 0, max_count = 1, bufsize = BUFSIZE;
+	int ret, count = 0, max_count = 1, bufsize = BUFSIZE;
 	int c, interval = 1, debug = 0;
-	int out = 1; /* STDOUT */ 
+	int in, out = 1; /* STDOUT */ 
 	char *pbuf, buf[BUFSIZE], bufo[BUFSIZE];
 	char *cr = "\n";
-	char *file = NULL, *ofile = NULL;
+	char *ifile = NULL, *ofile = NULL;
 	time_t now;
 	struct tm *tm;
 
@@ -45,7 +67,7 @@ int main(int argc, char **argv)
 	while ((c = getopt(argc, argv, "f:c:i:o:b:d")) != -1) {
 		switch (c) {
 		case 'f':
-			file = optarg;
+			ifile = optarg;
 			break;
 
 		case 'c':
@@ -55,6 +77,10 @@ int main(int argc, char **argv)
 		case 'b':
 			bufsize = atoi(optarg);
 			pbuf = malloc(bufsize);
+			if (pbuf == NULL) {
+				printf("maloc failed.\n");
+				exit(1);
+			}
 			break;
 
 		case 'i':
@@ -68,10 +94,14 @@ int main(int argc, char **argv)
 		case 'd':
 			debug = 1;
 			break;
+
+		default:
+			usage();
+			exit(1);
 		}
 	}
 	if (debug) {
-		printf("#file     = '%s'\n", file);
+		printf("#ifile     = '%s'\n", ifile);
 		printf("#ofile    = '%s'\n",
 		       (ofile == NULL) ? "STDOUT" : ofile);
 		printf("#count    = %d\n", max_count);
@@ -80,43 +110,49 @@ int main(int argc, char **argv)
 	}
 	
 	if (ofile != NULL) {
-		out = open(optarg, O_RDWR | O_CREAT | O_TRUNC, 00666);
+		out = open(ofile, O_RDWR | O_CREAT | O_TRUNC, 00666);
 		if (out < 0) {
-			printf("Cannot open '%s'\n", optarg);
+			printf("Cannot open '%s'\n", ofile);
 			exit(1);
 		}
 	}
     
-	if (file == NULL) {
+	if (ifile == NULL) {
 		printf("Specify a file to monitor.\n");
+		usage();
 		exit(1);
 		
 	} else {
-		fd = open(file, O_RDONLY);
-		if (fd < 0) {
-			printf("failed to open '%s'\n", file);
+		in = open(ifile, O_RDONLY);
+		if (in < 0) {
+			printf("failed to open '%s' (%d)\n", ifile, errno);
 			exit(1);
 		}
 	}
 
-	sprintf(bufo, "# %s\n", file);
+	sprintf(bufo, "# %s\n", ifile);
 	write(out, bufo, strlen(bufo));
     
 	count = 0;
 	while (1) {
-		lseek(fd, SEEK_SET, 0);
+		lseek(in, SEEK_SET, 0);
 		memset(pbuf, 0x0, bufsize);
 
 		now = time(NULL);
-		ret = read(fd, pbuf, bufsize);
+		ret = read(in, pbuf, bufsize);
 		if (debug) {
 			printf("#read returns = %d\n", ret);
 		}
 		if (ret < 0) {
-			printf("read %s failed.\n", file);
+			printf("read %s failed. (%d)\n", ifile, errno);
 			exit(1);
 		}
-
+		if (ret == bufsize) {
+		    sprintf(bufo, "# Warning! Need more than 2 read()s."
+			       " Consider increasing buffer size (-b)\n");
+		    write(out, bufo, strlen(bufo));
+		    
+		}
 		tm = localtime(&now);
 		sprintf(bufo, "%04d/%02d/%02d %02d:%02d:%02d\n",
 			tm->tm_year + 1900, tm->tm_mon, tm->tm_mday,
@@ -125,10 +161,12 @@ int main(int argc, char **argv)
 		write(out, cr, strlen(cr));
 		write(out, pbuf, ret);
 		if (ret == bufsize) {
-			printf("\n# Warning! Need more than 2 read()."
-			       " Consider increasing buffer size (-b)\n");
-			while ((ret = ret = read(fd, pbuf, bufsize)) > 0) {
+			while ((ret = read(in, pbuf, bufsize)) > 0) {
 				write(out, pbuf, ret);
+			}
+			if (ret < 0) {
+				printf("read %s failed. (%d)\n", ifile, errno);
+				exit(1);
 			}
 		}
 		write(out, cr, strlen(cr));
@@ -137,7 +175,8 @@ int main(int argc, char **argv)
 		if (count >= max_count) break;
 		sleep(interval);
 	}
-	close(fd);
+	close(in);
+	close(out);
 
 	return 0;
 }
