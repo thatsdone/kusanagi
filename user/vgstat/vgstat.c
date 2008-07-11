@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <sys/time.h>
 #include <vmGuestLib.h>
 
@@ -34,7 +35,7 @@
 #define IS_VERBOSE(f) (f & FLAG_VERBOSE)
 #define IS_RAWOUTPUT(f) (f & FLAG_RAWOUTPUT)
 #define PROGNAME "vgstat"
-#define VERSION "0.5"
+#define VERSION "0.6"
 
 struct vg_data {
 	VMGuestLibHandle handle;
@@ -256,17 +257,26 @@ int sample(struct vg_data *pvg, unsigned int flag)
 void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 {
 	long long ms_now, ms_prev;
+	struct tm *tm;
 
 	if (now == NULL) {
-		printf("output: BUG: now is NULL!n");
+		printf("output: BUG: now is NULL\n");
 		exit(1);
 	}
 	ms_now  = (long long)now->ts.tv_sec * 1000000
 		+ (long long)now->ts.tv_usec;
 	ms_prev = (long long)prev->ts.tv_sec * 1000000
 		+ (long long)prev->ts.tv_usec;
+	if (flag & FLAG_UNIXTIME) {
+	    printf("%ld ", now->ts.tv_sec);
+
+	} else {
+	    tm = localtime((time_t*) &(now->ts.tv_sec));
+	    printf("%04d/%02d/%02d %02d:%02d:%02d ",
+		   tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+		   tm->tm_hour, tm->tm_min, tm->tm_sec);
+	}
 	
-	printf("%ld ", now->ts.tv_sec);
 	if (IS_RAWOUTPUT(flag)) {
 		printf("%llu ", now->id);
 		printf("%u ", now->hostmhz);       /* MHz */
@@ -331,7 +341,7 @@ int main (int argc, char **argv)
 	struct vg_data vg_now, vg_prev;
 	VMGuestLibError ret;
 
-	while ((c = getopt(argc, argv, "i:c:hvr")) != -1) {
+	while ((c = getopt(argc, argv, "i:c:hvru")) != -1) {
 		switch(c) {
 		case 'i':
 			interval = atoi(optarg);
