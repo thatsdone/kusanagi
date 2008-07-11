@@ -57,7 +57,7 @@ DESCRIPTION
 	by VMGuestLib_GetCpuUsedMs(), also used(now) and used(prev)
 	are values by VMGuestLib_GetElapsedMs().
 	
-	% Used = 100 * (used(now) - used(prev)) / (elapse(prev) - elapse(now))
+	% Used = 100 * (used(now) - used(prev)) / (elapse(now) - elapse(prev))
 
 	The above '% Used' is the same as the %USED derived by esxtop, or
 	'used' derived by VI SDK.
@@ -72,8 +72,8 @@ DESCRIPTION
     In the above example, the second column, 5002 means 5002(ms)
     between successive two samples via gettimeofday().
     
-    The third and fourth columns are elapse(prev) - elapse(now) and
-    used(prev) - used(now).
+    The third and fourth columns are elapse(now) - elapse(prev) and
+    used(now) - used(prev).
 
 PREREQUISITE
     1) The guest OS must run on VMware ESX Server, not VMware Workstation.
@@ -91,7 +91,10 @@ INSTALLATION
 	   modify LIBPATH according to your guest operatins system is
 	   32bit or 64bit.
         4) Make.
-	5) Copy vgstat where you like.
+	5) Install.
+	   # make install
+	     or
+	   # make install INSTALLPATH=where_you_like 
 
     b) In case compliling vgstat on a VMware Linux box:
         1) Extract vgstat archive. Presumably, you have already done.
@@ -99,10 +102,10 @@ INSTALLATION
 	   Make sure VMware Guest SDK header files exist.
  	   For example, /usr/lib/vmware-tools/GuestSDK/vmGuestLib.h.
         3) Make.
-	4) Copy vgstat where you like.
-
-RESTRICTIONS
-  * At this moment, timestamp format is UNIX time format only.
+	4) Install.
+	   # make install
+	     or
+	   # make install INSTALLPATH=where_you_like 
 
 LICENSE
   This module is provided under GPL2.
@@ -110,6 +113,7 @@ LICENSE
   Copyright (C) 2008 Masanori ITOH <masanori.itoh@gmail.com>
 
 HISTORY
+  July  11, 2008 v0.6 Added yyyy/mm/dd hh:mm:ss format (No '-u' option).
   April 10, 2008 v0.5 Corrected a typo, and README.txt corrections.
   April  5, 2008 v0.4 Bug fixes, and README.txt added.
   April  1, 2008 v0.3 Bug fixes
