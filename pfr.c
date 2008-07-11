@@ -37,7 +37,7 @@
 
 #define BUFSIZE 4096
 #define PROGNAME "pfr"
-#define VERSION "1.0"
+#define VERSION "1.1"
 
 void usage(void) 
 {
