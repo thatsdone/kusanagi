@@ -1,5 +1,5 @@
 NAME
-    vgstat - a simple statistics collector for guest OSes on VMware ESX Server
+    vgstat - a simple statistics collector for guest OSes on VMware ESXi
 
 SYNOPSIS
     vgstat [-i interval] [-c count] [-h] [-r] [-v] [-u]
@@ -19,15 +19,15 @@ DESCRIPTION
     -v Print verbose messages, especially on errors.
     -u Print timestamp using UNIX time format.
 
-    Here is an example of raw mode output.
+    Here is an example of raw output mode.
 
-    | # vgstat -i 5 -c 3 -r -u
-    | 1207206685 15178136555125225123 3000 2775 4294967295 2000 522709486 \
-    |          99277134 0 2080768 30840 3070 123 346 0 0 13 7 3063 5002  13.75 
-    | 1207206690 15178136555125225123 3000 2775 4294967295 2000 522714460 \
-    |          99277844 0 2080768 30840 3070 123 346 0 0 13 7 3063 5002  14.27 
-    | 1207206695 15178136555125225123 3000 2775 4294967295 2000 522719479 \
-    |          99278815 0 2080768 30840 3070 123 346 0 0 13 7 3063 5002  19.35 
+|$ ./vgstat -c 5 -i 5 -r
+|Timestamp SessionId HostProcessorSpeed CpuReservationMHz CpuLimitMHz CpuShares ElapsedMs CpuUsedMs CpuStolenMs MemReservationMB MemLimitMB MemShares MemMappedMB MemActiveMB MemOverheadMB MemBalloonedMB MemSwappedMB MemSharedMB MemSharedSavedMB MemUsedMB
+|2017-03-12T01:16:53+0900 1654195723609587025 2597 0 4294967295 1000 603558249 5009357 5044823 0 4294967295 20480 2048 204 31 0 0 0 0 2048 5001     0.56     0.12
+|2017-03-12T01:16:58+0900 1654195723609587025 2597 0 4294967295 1000 603563250 5009366 5044831 0 4294967295 20480 2048 204 31 0 0 0 0 2048 5000     0.18     0.16
+|2017-03-12T01:17:03+0900 1654195723609587025 2597 0 4294967295 1000 603568250 5010831 5044837 0 4294967295 20480 2048 204 31 0 0 0 0 2048 5000    29.30     0.12
+|2017-03-12T01:17:08+0900 1654195723609587025 2597 0 4294967295 1000 603573251 5015222 5044843 0 4294967295 20480 2048 204 31 0 0 0 0 2048 5000    87.80     0.12
+|2017-03-12T01:17:13+0900 1654195723609587025 2597 0 4294967295 1000 603578251 5015226 5044849 0 4294967295 20480 2048 204 31 0 0 0 0 2048 5000     0.08     0.12
 
     From the 1st column, they mean return values of:
         gettimeofday() (timestamp)
@@ -38,6 +38,7 @@ DESCRIPTION
         VMGuestLib_GetCpuShares()
         VMGuestLib_GetElapsedMs()
         VMGuestLib_GetCpuUsedMs()
+        VMGuestLib_GetCpuStolenMs()
         VMGuestLib_GetMemReservationMB()
         VMGuestLib_GetMemLimitMB()
         VMGuestLib_GetMemShares()
@@ -49,34 +50,48 @@ DESCRIPTION
         VMGuestLib_GetMemSharedMB()
         VMGuestLib_GetMemSharedSavedMB()
         VMGuestLib_GetMemUsedMB()
-    The last two columns are:
-        milliseconds since the last sampling by gettimeofday()
-	% Used calculated like the following.
+
+    The last three columns are:
+        milliseconds since the last sampling by gettimeofday(),
+        %used and %ready calculated like the following.
 
         Here, elapse(now) and elapse(prev) are values derived
-	by VMGuestLib_GetCpuUsedMs(), also used(now) and used(prev)
-	are values by VMGuestLib_GetElapsedMs().
-	
-	% Used = 100 * (used(now) - used(prev)) / (elapse(now) - elapse(prev))
+        by VMGuestLib_GetCpuUsedMs(), also used(now) and used(prev)
+        are values by VMGuestLib_GetElapsedMs().
 
-	The above '% Used' is the same as the %USED derived by esxtop, or
-	'used' derived by VI SDK.
-	If the VM guest has 4 VCPUs, the value can be up to 400%.
+        %used = 100 * (used(now) - used(prev)) / (elapse(now) - elapse(prev))
 
-    An example of standard mode output is below.
+        The above '%used' and '%ready' are the same as the %USED and %READY
+        derived by esxtop.
+        If a VM has 4 VCPUs, theose values can be up to 400%.
 
-    | # vgstat -i 5 -c 1 -u
-    | 1207206685 5002 4974 710  14.27
+    Here is an example of standard output mode.
 
-    The second and the fifth columns are the same as raw output mode.
-    In the above example, the second column, 5002 means 5002(ms)
+|$ ./vgstat -c 10 -i 10
+|Timestamp                intvl(g) intvl(h)     used   stolen    %used   %ready
+|2017-03-12T01:06:20+0900    10001    10001       30       14     0.30     0.14
+|2017-03-12T01:06:30+0900    10000    10001       30       13     0.30     0.13
+|2017-03-12T01:06:40+0900    10000    10001     9189       11    91.88     0.11
+|2017-03-12T01:06:50+0900    10000    10000     9142       11    91.42     0.11
+|2017-03-12T01:07:00+0900    10000    10001       29       13     0.29     0.13
+|2017-03-12T01:07:10+0900    10000    10001     7052       11    70.51     0.11
+|2017-03-12T01:07:20+0900    10000    10000    12316       11   123.16     0.11
+|2017-03-12T01:07:30+0900    10000    10001     5244       12    52.43     0.12
+|2017-03-12T01:07:40+0900    10000    10000       19       13     0.19     0.13
+|2017-03-12T01:07:50+0900    10000    10001       19       11     0.19     0.11
+
+    The second and the third columns are elapsed time delived in VM and
+    Hypervisor respectively.
+    The fourth and fifth columns areactual used time (ms) and stolen time(ms)
     between successive two samples via gettimeofday().
+    The last 2 columns are also used time(%) and stolen or ready time(%).
     
-    The third and fourth columns are elapse(now) - elapse(prev) and
-    used(now) - used(prev).
+    Note that in the above example, I used a 1VCPU VM, but %used goes up to
+    123.16%. In my understanding, this is because VMGuestLib_GetCpuUsedMs()
+    contains time spent in hypervisor side.
 
 PREREQUISITE
-    1) Your guest OSes must run on a VMware ESXi, not a VMware Workstation.
+    1) You have to use this tool on a ESXi VM, not a VMware Workstation.
     2) You have to install and enable open-vm-tools[2].
        Originally, this tool was written for VMware Guest SDK[1], but
        now I switched to open-vm-tools.
@@ -92,7 +107,7 @@ INSTALLATION
     3) Make it.
     4) Install it.
        # make install
-       	 or
+         or
        # make install INSTALLPATH=where_you_like
 
 LICENSE
