@@ -13,7 +13,7 @@ LOPT=-lguestlib
 all: vgstat
 
 vgstat:
-	gcc $(SRC) $(COPT) $(LOPT)
+	gcc $(SRC) $(COPT) $(LOPT) -o vgstat
 
 install: all  
 	install -o root -g root -m 755 vgstat $(INSTALLPATH)/vgstat
