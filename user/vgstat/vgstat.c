@@ -70,7 +70,11 @@ int sample(struct vg_data *pvg, unsigned int flag)
 	VMGuestLibError ret;
 	
 	rc = gettimeofday(&pvg->ts, NULL);
-	
+	if (rc < 0) {
+		printf("gettimeofday() failed.");
+		return 1;
+	}
+
 	ret = VMGuestLib_UpdateInfo(pvg->handle);
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
@@ -278,13 +282,13 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 	}
 	
 	if (IS_RAWOUTPUT(flag)) {
-		printf("%llu ", now->id);
+		printf("%lu ", now->id);
 		printf("%u ", now->hostmhz);       /* MHz */
 		printf("%u ", now->reservemhz);    /* MHz */
 		printf("%u ", now->limitmhz);      /* MHz */
 		printf("%u ", now->cpushares);  
-		printf("%llu ", now->elapsedms);   /* ms */
-		printf("%llu ", now->usedms);      /* ms */
+		printf("%lu ", now->elapsedms);    /* ms */
+		printf("%lu ", now->usedms);       /* ms */
 		printf("%u ", now->reservemb);     /* MB */
 		printf("%u ", now->limitmb);       /* MB */
 		printf("%u ", now->memshares);
@@ -308,8 +312,8 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 			exit(1);
 		}
 		printf("%lld ", (ms_now - ms_prev) / 1000); /* guest clock */
-		printf("%llu ", now->elapsedms - prev->elapsedms);
-		printf("%llu ", now->usedms - prev->usedms);
+		printf("%lu ", now->elapsedms - prev->elapsedms);
+		printf("%lu ", now->usedms - prev->usedms);
 		printf("%6.2f",
 		       (double)100 * (now->usedms - prev->usedms) / 
 		       (double)(now->elapsedms - prev->elapsedms));

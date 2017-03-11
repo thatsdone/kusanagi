@@ -76,43 +76,32 @@ DESCRIPTION
     used(now) - used(prev).
 
 PREREQUISITE
-    1) The guest OS must run on VMware ESX Server, not VMware Workstation.
-    2) You have to install and enable VMware Tools.
-    3) If you want to compile vgstat on a native Linux environment,
-       you have to download VMware Guest SDK from VMware web site. [1]
+    1) Your guest OSes must run on a VMware ESXi, not a VMware Workstation.
+    2) You have to install and enable open-vm-tools[2].
+       Originally, this tool was written for VMware Guest SDK[1], but
+       now I switched to open-vm-tools.
+    3) If you want to build vgstat on a native Linux environment,
+       you have to install open-vm-tools-dev package.
 
 INSTALLATION
         
-    a) In case compiling vgstat on a non-VMware Linux box:
-        1) Extract vgstat archive. Presumably, you have already done.
-	2) Extract the VMware Guest SDK package somewhere.
-	3) Modify Makefile as needed.
-           At least SDKPATH must be modified. Also, note that you need to
-	   modify LIBPATH according to your guest operatins system is
-	   32bit or 64bit.
-        4) Make.
-	5) Install.
-	   # make install
-	     or
-	   # make install INSTALLPATH=where_you_like 
-
-    b) In case compliling vgstat on a VMware Linux box:
-        1) Extract vgstat archive. Presumably, you have already done.
-	2) Just make, and that's all.
-	   Make sure VMware Guest SDK header files exist.
- 	   For example, /usr/lib/vmware-tools/GuestSDK/vmGuestLib.h.
-        3) Make.
-	4) Install.
-	   # make install
-	     or
-	   # make install INSTALLPATH=where_you_like 
+    1) Extract vgstat archive. Presumably, you have already done.
+    2) Just make, and that's all.
+       Make sure that you installed both open-vm-tools-dev. You should see
+       /usr/include/vmGuestLib/vmGuestLib.h
+    3) Make it.
+    4) Install it.
+       # make install
+       	 or
+       # make install INSTALLPATH=where_you_like
 
 LICENSE
   This module is provided under GPL2.
 
-  Copyright (C) 2008 Masanori ITOH <masanori.itoh@gmail.com>
+  Copyright (C) 2008-2017, Masanori Itoh <masanori.itoh@gmail.com>
 
 HISTORY
+  March 11, 2017 v0.9 Switch from VMware Guest SDK to open-vm-tools.
   July  11, 2008 v0.6 Added yyyy/mm/dd hh:mm:ss format (No '-u' option).
   April 10, 2008 v0.5 Corrected a typo, and README.txt corrections.
   April  5, 2008 v0.4 Bug fixes, and README.txt added.
@@ -121,5 +110,6 @@ HISTORY
 
 REFERENCES
   [1] http://www.vmware.com/support/developer/guest-sdk/
+  [2] https://github.com/vmware/open-vm-tools
 
 $Id$
