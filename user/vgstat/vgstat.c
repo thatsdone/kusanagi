@@ -1,7 +1,7 @@
 /*
  * vgstat.c is a simple statistics collector for guest OSes on VMWare:
  *
- * Copyright (C) 2008  Masanori ITOH <masanori.itoh_at_gmail.com>
+ * Copyright (C) 2008-2017  Masanori ITOH <masanori.itoh@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 #define IS_VERBOSE(f) (f & FLAG_VERBOSE)
 #define IS_RAWOUTPUT(f) (f & FLAG_RAWOUTPUT)
 #define PROGNAME "vgstat"
-#define VERSION "0.6"
+#define VERSION "0.91"
 
 struct vg_data {
 	VMGuestLibHandle handle;
@@ -47,6 +47,7 @@ struct vg_data {
 	uint32 cpushares;         /* VMGuestLib_GetCpuShares */
 	uint64 elapsedms;         /* VMGuestLib_GetElapsedMs */
 	uint64 usedms;            /* VMGuestLib_GetCpuUsedMs */
+	uint64 stolenms;          /* VMGuestLib_GetCpuStolenMs */
 	uint32 reservemb;         /* VMGuestLib_GetMemReservationMB */
 	uint32 limitmb;           /* VMGuestLib_GetMemLimitMB */
 	uint32 memshares;         /* VMGuestLib_GetMemShares */
@@ -142,6 +143,15 @@ int sample(struct vg_data *pvg, unsigned int flag)
 	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
 		if (IS_VERBOSE(flag)) {
 			printf("VMGuestLib_GetCpuUsedMs: %d (%s)\n",
+			       ret, VMGuestLib_GetErrorText(ret));
+		}
+		return 1;
+	}
+
+	ret = VMGuestLib_GetCpuStolenMs(pvg->handle, &pvg->stolenms);
+	if (ret != VMGUESTLIB_ERROR_SUCCESS) {
+		if (IS_VERBOSE(flag)) {
+			printf("VMGuestLib_GetCpuStolenMs: %d (%s)\n",
 			       ret, VMGuestLib_GetErrorText(ret));
 		}
 		return 1;
@@ -262,6 +272,7 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 {
 	long long ms_now, ms_prev;
 	struct tm *tm;
+	char timestamp[256];
 
 	if (now == NULL) {
 		printf("output: BUG: now is NULL\n");
@@ -272,13 +283,12 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 	ms_prev = (long long)prev->ts.tv_sec * 1000000
 		+ (long long)prev->ts.tv_usec;
 	if (flag & FLAG_UNIXTIME) {
-	    printf("%ld ", now->ts.tv_sec);
+	    printf("%-24ld ", now->ts.tv_sec);
 
 	} else {
 	    tm = localtime((time_t*) &(now->ts.tv_sec));
-	    printf("%04d/%02d/%02d %02d:%02d:%02d ",
-		   tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-		   tm->tm_hour, tm->tm_min, tm->tm_sec);
+	    strftime(timestamp, 256, "%FT%T%z", tm);
+	    printf("%24s ", timestamp);
 	}
 	
 	if (IS_RAWOUTPUT(flag)) {
@@ -301,7 +311,7 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 		printf("%u ", now->sharedsavedmb); /* MB */
 		printf("%u ", now->usedmb);        /* MB */
 		printf("%lld ", (ms_now - ms_prev) / 1000); /* guest clock */
-		printf("%6.2f",
+		printf("%8.2f",
 		       (double)100 * (now->usedms - prev->usedms) / 
 		       (double)(now->elapsedms - prev->elapsedms));
 			/* cpu usage rate */
@@ -311,13 +321,18 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 			printf("output: BUG: prev is NULL for non-raw mode!\n");
 			exit(1);
 		}
-		printf("%lld ", (ms_now - ms_prev) / 1000); /* guest clock */
-		printf("%lu ", now->elapsedms - prev->elapsedms);
-		printf("%lu ", now->usedms - prev->usedms);
-		printf("%6.2f",
+		printf("%8lld ", (ms_now - ms_prev) / 1000); /* guest clock */
+		printf("%8lu ", now->elapsedms - prev->elapsedms);
+		printf("%8lu ", now->usedms - prev->usedms);
+		printf("%8lu ", now->stolenms - prev->stolenms);
+		printf("%8.2f ",
 		       (double)100 * (now->usedms - prev->usedms) / 
 		       (double)(now->elapsedms - prev->elapsedms));
 			/* cpu usage rate */
+		printf("%8.2f",
+		       (double)100 * (now->stolenms - prev->stolenms) /
+		       (double)(now->elapsedms - prev->elapsedms));
+			/* %ready rate */
 	}
 	printf("\n");
 	return;
@@ -391,7 +406,9 @@ int main (int argc, char **argv)
 	if (sample(&vg_now, flag) != 0) {
 		goto bailout;
 	}
-
+	printf("%-24s %-8s %-8s %8s %8s %8s %8s\n",
+	       "Time stamp", "intvl(g)", "intvl(h)",
+	       "used", "stolen", "%used", "%ready");
 	for (count = 0; count < max_count; count++) {
 		vg_prev = vg_now;
 		sleep(interval);
