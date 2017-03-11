@@ -272,7 +272,7 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 {
 	long long ms_now, ms_prev;
 	struct tm *tm;
-	char timestamp[256];
+	char timestamp[BUFSIZE];
 
 	if (now == NULL) {
 		printf("output: BUG: now is NULL\n");
@@ -287,7 +287,7 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 
 	} else {
 	    tm = localtime((time_t*) &(now->ts.tv_sec));
-	    strftime(timestamp, 256, "%FT%T%z", tm);
+	    strftime(timestamp, BUFSIZE, "%FT%T%z", tm);
 	    printf("%24s ", timestamp);
 	}
 	
@@ -299,6 +299,7 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 		printf("%u ", now->cpushares);  
 		printf("%lu ", now->elapsedms);    /* ms */
 		printf("%lu ", now->usedms);       /* ms */
+		printf("%lu ", now->stolenms);       /* ms */
 		printf("%u ", now->reservemb);     /* MB */
 		printf("%u ", now->limitmb);       /* MB */
 		printf("%u ", now->memshares);
@@ -311,10 +312,14 @@ void output(struct vg_data *now, struct vg_data *prev, unsigned int flag)
 		printf("%u ", now->sharedsavedmb); /* MB */
 		printf("%u ", now->usedmb);        /* MB */
 		printf("%lld ", (ms_now - ms_prev) / 1000); /* guest clock */
-		printf("%8.2f",
+		printf("%8.2f ",
 		       (double)100 * (now->usedms - prev->usedms) / 
 		       (double)(now->elapsedms - prev->elapsedms));
 			/* cpu usage rate */
+		printf("%8.2f",
+		       (double)100 * (now->stolenms - prev->stolenms) /
+		       (double)(now->elapsedms - prev->elapsedms));
+			/* %ready rate */
 		
 	} else {
 		if (prev == NULL) {
@@ -406,9 +411,22 @@ int main (int argc, char **argv)
 	if (sample(&vg_now, flag) != 0) {
 		goto bailout;
 	}
-	printf("%-24s %-8s %-8s %8s %8s %8s %8s\n",
-	       "Time stamp", "intvl(g)", "intvl(h)",
-	       "used", "stolen", "%used", "%ready");
+
+	if (IS_RAWOUTPUT(flag)) {
+		printf("Timestamp "
+		       "SessionId "
+		       "HostProcessorSpeed "
+		       "CpuReservationMHz CpuLimitMHz CpuShares "
+		       "ElapsedMs CpuUsedMs CpuStolenMs "
+		       "MemReservationMB MemLimitMB MemShares MemMappedMB "
+		       "MemActiveMB MemOverheadMB MemBalloonedMB MemSwappedMB "
+		       "MemSharedMB MemSharedSavedMB MemUsedMB\n"
+		);
+	} else {
+		printf("%-24s %-8s %-8s %8s %8s %8s %8s\n",
+		       "Timestamp", "intvl(g)", "intvl(h)",
+		       "used", "stolen", "%used", "%ready");
+	}
 	for (count = 0; count < max_count; count++) {
 		vg_prev = vg_now;
 		sleep(interval);
