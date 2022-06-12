@@ -17,12 +17,13 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * $Id$
  */
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define PROGNAME "load"
 #define VERSION "1.0"
@@ -30,9 +31,9 @@
 void usage(void)  
 {
     printf("%s: %s\n", PROGNAME, VERSION);
-    printf("    Generate specified CPU load between 1%% to 100%\n");
+    printf("    Generate specified CPU load between 1%% to 100%%\n");
     printf("    Options:\n");
-    printf("      -l LOAD : CPU load 1 to 100 (%) against one physical CPU\n");
+    printf("      -l LOAD : CPU load 1 to 100 (%%) against one physical CPU\n");
     printf("      -s      : Generate CPU load calling getpid(2)\n");
     printf("      -t      : Multi-threaded model. (not yet)\n");
 }
@@ -69,11 +70,11 @@ int main (int argc, char **argv)
     }
     
     if ((load_percent <= 0) || (load_percent > 100)) {
-	printf("Invalid CPU load: %d %\n");
+	printf("Invalid CPU load: %d %%\n", load_percent);
 	exit(1);
     }
 
-    printf("generating CPU load : %d %\n", load_percent);
+    printf("generating CPU load : %d %%\n", load_percent);
 
     if ((child = fork()) > 0) {
 	/*
