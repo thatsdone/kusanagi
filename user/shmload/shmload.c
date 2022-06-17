@@ -173,12 +173,12 @@ int main(int argc, char **argv)
 		printf("%s: getrlimit returned %d %d\n", PROGNAME, ret, errno);
 	}
 	if (verbose) {
-		printf("%s: rlim_cur = %d, size = %d\n",
+		printf("%s: rlim_cur = %lu, size = %lu\n",
 		       PROGNAME, rlimit.rlim_cur, size);
 	}
 	if (rlimit.rlim_cur < size) {
 		printf("%s: Warning! size is larger than rlim_cur (MEMLOCK)"
-		       " (%d > %d)\n", PROGNAME, size, rlimit.rlim_cur);
+		       " (%lu > %lu)\n", PROGNAME, size, rlimit.rlim_cur);
 	}
 	if (large_page) {
 		/*
@@ -215,12 +215,12 @@ int main(int argc, char **argv)
 	if (large_page) {
 		shflag |= SHM_HUGETLB;
 	}
-	printf("%s: large_page = %d, size= %u, count = %lld,"
+	printf("%s: large_page = %d, size= %lu, count = %lld,"
 	       " large_page_size = %ld\n",
 	       PROGNAME, large_page, size, count, large_page_size);
 	shmid = shmget(key, size, shflag);
 	if (verbose || shmid < 0) {
-		printf("%s: shmget(key= %d, size=%d) returns %d %d\n",
+		printf("%s: shmget(key= %d, size=%lu) returns %d %d\n",
 		       PROGNAME, key, size, shmid, errno);
 	}
 	if (shmid < 0) {
