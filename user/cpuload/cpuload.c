@@ -42,7 +42,7 @@ void usage(void)
 int main (int argc, char **argv)
 {
     pid_t child;
-    int i, load_percent = 25, syscall = 0;
+    int load_percent = 25, syscall = 0;
     char c;
 
     while ((c = getopt(argc, argv, "l:sth")) != -1) {
